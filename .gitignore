@@ -1,0 +1,11 @@
+/backups/
+/branding/
+/concepts/
+/dist/
+/docs/
+/gallery/
+/AGENTS.md
+/preview*.html
+/tools/node_modules/
+/tools/cache/
+*.log

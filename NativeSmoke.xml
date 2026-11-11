@@ -1,0 +1,10 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+    <!-- Plain actor: load completion only, no Blizzard mixin or Lua OnUpdate. -->
+    <Actor name="EndCapperSmokeActorTemplate" virtual="true">
+        <Scripts>
+            <OnModelLoaded>
+                if self.endCapperOnModelLoaded then self.endCapperOnModelLoaded() end
+            </OnModelLoaded>
+        </Scripts>
+    </Actor>
+</Ui>
