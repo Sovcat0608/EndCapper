@@ -20,11 +20,11 @@ function E.PlayArcane(entry)
     s.startedAt=GetTime()
     s.motionGroup:Play(false,s.elapsed%6)
     s.pulseGroup:Play(false,s.elapsed%4)
-    s.rotationGroup:Play(false,s.elapsed%24)
+    if s.hasSeal then s.rotationGroup:Play(false,s.elapsed%24) end
 end
 function E.UpdateArcane(entry,config)
     local s=entry.arcane
-    if config.art~="violetSpire" or config.effects==false then
+    if (config.art~="violetSpire" and config.art~="soulbound") or config.effects==false then
         if s then s.enabled=false; E.StopArcane(entry) end
         return
     end
@@ -75,9 +75,15 @@ function E.UpdateArcane(entry,config)
         entry.arcane=s
     end
     s.enabled=true; s.art=entry.art
+    local soulbound=config.art=="soulbound"
+    s.hasSeal=not soulbound
+    s.crystal:SetTexture(media..(soulbound and "SoulboundCrystal" or "ArcaneCrystal")..".blp","CLAMP","CLAMP","TRILINEAR")
+    s.emission:SetTexture(media..(soulbound and "SoulboundCrystalEmission" or "ArcaneCrystal")..".blp","CLAMP","CLAMP","TRILINEAR")
+    if s.hasSeal then s.sigil:Show() else s.sigil:Hide() end
     local width,height=entry.art:GetSize(); s.height=height
-    s.x=(config.flip and 1-0.345 or 0.345)*width
-    s.y=-0.405*height
+    local anchorU=soulbound and 0.30 or 0.345
+    s.x=(config.flip and 1-anchorU or anchorU)*width
+    s.y=-(soulbound and 0.175 or 0.405)*height
     s.host:SetFrameLevel(entry.frame:GetFrameLevel()+3)
     E.UpdateEffectClip(entry,config,s.effectsHost,entry.frame:GetFrameLevel()+3)
     s.host:SetAlpha(entry.alpha); s.host:SetSize(height*0.4,height*0.4)
@@ -87,8 +93,10 @@ function E.UpdateArcane(entry,config)
     s.crystal:SetPoint("CENTER",s.host,"CENTER",0,-amplitude)
     s.emission:SetPoint("CENTER",s.host,"CENTER",0,-amplitude)
     for _,t in ipairs(s.translations) do t.animation:SetOffset(0,t.direction*2*amplitude) end
-    s.crystal:SetSize(height*0.4,height*0.4)
-    s.emission:SetSize(height*0.4,height*0.4)
+    local crystalWidth=height*(soulbound and 0.44 or 0.4)
+    local crystalHeight=height*(soulbound and 0.32 or 0.4)
+    s.crystal:SetSize(crystalWidth,crystalHeight)
+    s.emission:SetSize(crystalWidth,crystalHeight)
     -- 100% is the approved rc.6 size; centre and rotation stay independent.
     local sealSize=height*0.525*(config.sealSize or E.ArcaneSealSize)/100
     s.sigil:SetSize(sealSize,sealSize)

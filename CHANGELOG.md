@@ -1,93 +1,13 @@
 # Changelog
 
-## 1.4.0-rc.19
+## 1.4.0
 
-- Baked the full Frostmourne effect calibration from Frosthilt on the left and Frostblade on the right.
-
-## 1.4.0-rc.18
-
-- Baked the calibrated Frosthilt Cold Flame trail as the default.
-
-## 1.4.0-rc.17
-
-- Added independent developer controls for Frosthilt's Cold Flame size, angle, eye offset and opacity.
-
-## 1.4.0-rc.16
-
-- Replaced Frosthilt's animated eye texture with one native Cold Flame particle trail.
-
-## 1.4.0-rc.15
-
-- Added a single animated wisp from Frosthilt's visible skull eye using the texture from Arthas's eye effect. The trail mirrors and scales with the hilt.
-
-## 1.4.0-rc.14
-
-- Reshaped Frostmourne's ice edges into three bulky shards of varying heights and widths, with their outer faces aligned to the action bar.
-
-## 1.4.0-rc.13
-
-- Added jagged chips and shard tips along Frostmourne's tall bar-facing ice edges, keeping their flush alignment.
-
-## 1.4.0-rc.12
-
-- Made Frostmourne's separate ice formations taller with straighter bar-facing edges for a more flush fit against the action bars.
-
-## 1.4.0-rc.11
-
-- Restored Frostmourne's original blade shape and replaced the fused ice edges with separate foreground ice formations. The sword now enters and emerges from the ice.
-- Foreground ice follows artwork sizing, positioning, mirroring and fading. Both native effects and saved calibration remain available.
-
-## 1.4.0-rc.10
-
-- Added Frosthilt / Frostblade, a matched Frostmourne sword pair with sculpted ice at the action-bar edges.
-- Added simultaneous native Icy Mist and Blue Frost Glow with independent calibration for each piece.
-- Added linked selection, Swap, mirroring and measured bottom alignment/cropping for the new pair. Effect positioning is provisional for this test build.
-
-## 1.4.0-rc.9
-
-- Baked the approved left Shadowfang and right Snowfang trail/Gloom positioning, size, angle, opacity and layering as their defaults.
-- Preserved both effects, developer controls and existing saved settings.
-
-## 1.4.0-rc.8
-
-- Renamed Blackfang / Whitefang to Shadowfang / Snowfang throughout the artwork selector and linked pair labels. Existing settings and effects are preserved.
-
-## 1.4.0-rc.7
-
-- Regenerated both Worgen sisters with corrected Blackfang tooth anatomy and amber eyes for Whitefang.
-- Replaced Whitefang's blue spectral trail with Undead's native Amber Flow; Blackfang retains the blue trail. Both keep Gloom, independent tuning and saved placement.
-- Preserved trail calibration and migrated Whitefang's saved front/back layer to the amber effect. Updated bottom crop lines for the new artwork.
-
-## 1.4.0-rc.6
-
-- Repainted Blackfang and Whitefang as a coordinated high-definition sister set with matched proportions, lighting and fur treatment, retaining each design's distinct braids, scars, jewelry and Gilnean ornament.
-- Updated their bottom alignment and effect crop lines for the new artwork. Native spectral trails, Gloom effects and saved tuning remain intact.
-
-## 1.4.0-rc.5
-
-- Rebuilt Worgen as Blackfang and added its Whitefang sister, with new high-definition artwork and distinct Gilnean tree/ruined-pillar details.
-- Added the Blackfang / Whitefang linked pair while preserving existing Worgen placement and saved trail tuning.
-- Both sisters run the native spectral trail alongside a new blue-gray/violet Gloom particle effect, with independent calibration and layering.
-- Removed the old fixed eye-glow overlay from the rebuilt Worgen artwork; painted blue eyes remain.
-
-## 1.4.0-rc.4
-
-- Restored Violetspire's custom floating crystal, fragments and pulsing emission; removed the native 3D crystal experiment and its rollback checkbox.
-
-## 1.4.0-rc.3
-
-- Replaced Violetspire's painted crystal with a native floating 3D Dalaran crystal, retaining the rotating seal and Arcane Glow.
-- Added an Original crystal rollback checkbox with Save/Cancel support. The painted crystal also serves as a loading/failure fallback.
-
-## 1.4.0-rc.2
-
-- Removed Kirin Tor's turned page; the right-hand page now sits squarely with the book's page stack.
-
-## 1.4.0-rc.1
-
-- Repainted Violetspire's static artwork to the current smooth painterly fidelity standard, retaining its original floating crystal, emission and rotating seal.
-- Added Kirin Tor, a matching Dalaran mage spellbook sister with the same Arcane Glow and a native animated Kirin Tor eye seal.
-- Paired Violetspire / Kirin Tor in linked selection, with independent tuning and layering for the new native seal and glow.
+- Added Kirin Tor, Snowfang, Frosthilt, Frostblade, Hexbound, Soulbound, Cryptgate and Plaguewell. Rebuilt Worgen as Shadowfang and repainted Violetspire, bringing the collection to 26 custom designs.
+- Added independently configurable End Cap and Corner Cap tabs. Enable either or both, then drag custom caps directly from the EndCapper panel. Click a cap to select it, fine-tune sliders with one-unit arrows, and use Snap to center for linked End Caps or Snap to corners for linked Corner Caps.
+- Added a movable EndCapper logo button with a visibility toggle. Improved Save and Cancel so discarded previews restore saved positions.
+- Added Frostmourne's ice formations, frost mist and glow, plus Frosthilt's Cold Flame eye trail. Hexbound and Soulbound feature pulsing fel details, with a hovering soul crystal on Soulbound.
+- Added animated falling poison, Rot Fog and Blue Mist to Cryptgate and Plaguewell. Cryptgate has a candle flame and two amber eye trails, and Plaguewell has a glowing amber lantern. Their calibrated effects apply by default in both modes.
+- Corrected the texture format for moving crystals, seals and halos to address black blocks and striped rendering artifacts.
 
 ## 1.3.0 — 2026-11-10
 

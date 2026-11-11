@@ -23,7 +23,11 @@ E.SetDevEffect(E.draft.left,'trailOpacity',25);E.Commit();E.Begin();assert(not E
 E.SetDevEffect(E.draft.left,'trailOpacity',26);assert(E.HasChanges());E.Cancel();E.Begin();assert(not E.HasChanges())
 EndCapperDB=E.Normalize({left={art='seraph'},right={art='sanctum'},pair={linked=true,art='seraph',centerX=1000}})
 E.Cancel();E.Begin();assert(not E.HasChanges())
-E.draft.pair.centerX=1100;E.SyncPair(E.draft);assert(not E.HasChanges(),'runtime-resolved centre/anchors are not an editor change')
+E.draft.pair.centerX=1100;E.SyncPair(E.draft);assert(E.HasChanges(),'a linked drag changes the saved centre')
+E.draft.pair.centerX=1000;E.SyncPair(E.draft);assert(not E.HasChanges())
+E.draft.left.frameX=0;assert(not E.HasChanges(),'derived linked side X stays outside the dirty check')
+E.draft.left.frameBottom=false;E.draft.left.frameY=200;assert(E.HasChanges())
+E.draft.left.frameBottom=true;E.draft.left.frameY=nil
 E.draft.pair.swapped=true;E.SyncPair(E.draft);assert(E.HasChanges())
 E.draft.pair.swapped=false;E.SyncPair(E.draft);assert(not E.HasChanges())
 E.draft.pair.separation=200;E.SyncPair(E.draft);assert(E.HasChanges())

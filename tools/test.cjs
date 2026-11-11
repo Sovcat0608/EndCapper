@@ -3,7 +3,7 @@ const path = require('node:path');
 const parser = require('luaparse');
 const {lua,lauxlib,lualib,to_luastring} = require('fengari');
 process.chdir(path.resolve(__dirname, '..'));
-for (const file of ['Model.lua','Layouts.lua','Clipping.lua','NativeSmoke.lua','Glyphs.lua','Arcane.lua','Molten.lua','Frost.lua','Moonwell.lua','Halos.lua','Effects.lua','Core.lua','Options.lua']) {
+for (const file of ['Model.lua','Layouts.lua','Clipping.lua','NativeSmoke.lua','Glyphs.lua','Liquid.lua','Arcane.lua','Molten.lua','Frost.lua','Moonwell.lua','Halos.lua','Effects.lua','Core.lua','Options.lua']) {
   parser.parse(fs.readFileSync(file,'utf8'),{luaVersion:'5.1'});
   console.log('Lua 5.1 syntax PASS:',file);
 }
@@ -15,11 +15,14 @@ lua.lua_pushcfunction(L, function(L) {
   if (lauxlib.luaL_loadstring(L,to_luastring(code)) !== lua.LUA_OK) return lua.lua_error(L);
   return 1;
 }); lua.lua_setglobal(L,to_luastring('loadfile'));
-const test = 'unpack = table.unpack\n' + ['tests/model.lua','tests/worgen.lua','tests/frostmourne.lua','tests/dirty.lua','tests/pairs.lua','tests/layouts.lua','tests/core.lua','tests/native.lua','tests/refresh.lua','tests/options.lua','tests/glyphs.lua','tests/arcane.lua','tests/molten.lua','tests/frost.lua','tests/halos.lua','tests/clipping.lua'].map(f => 'do\n'+fs.readFileSync(f,'utf8')+'\nend').join('\n');
+const test = 'unpack = table.unpack\n' + ['tests/model.lua','tests/worgen.lua','tests/frostmourne.lua','tests/dirty.lua','tests/pairs.lua','tests/layouts.lua','tests/core.lua','tests/native.lua','tests/refresh.lua','tests/options.lua','tests/glyphs.lua','tests/liquid.lua','tests/arcane.lua','tests/molten.lua','tests/frost.lua','tests/halos.lua','tests/clipping.lua'].map(f => 'do\n'+fs.readFileSync(f,'utf8')+'\nend').join('\n');
 if (lauxlib.luaL_dostring(L,to_luastring(test)) !== lua.LUA_OK) {
   throw Error(require('fengari').to_jsstring(lua.lua_tostring(L,-1)));
 }
-for (const [name,w,h] of [['WorgenWolf',512,256],['Moonbough',512,512],['VerdantRoot',512,512],['LunarRelic',512,512],['StormhornTotem',512,512],['Felwing',512,512],['FelwingGlyphAtlas',2048,2048],['VioletSpire',512,512],['ArcaneCrystal',256,256],['ArcaneSigil',256,256],...['Cinderforged','Cindermaw','CinderforgedEmission','CinderforgedBloom','CindermawEmission','CindermawBloom','Rimeforged','Rimeguard','RimeforgedRunes','RimeforgedRunesBloom','RimeforgedIce','RimeforgedIceBloom','RimeguardRunes','RimeguardRunesBloom','RimeguardIce','RimeguardIceBloom','RimeguardEyes','RimeguardEyesBloom'].map(n=>[n,512,512])]) {
+const logo=fs.readFileSync('Media/EcapLogo.tga');
+if(logo.length!==18+128*128*4 || logo[2]!==2 || logo[16]!==32 || logo[17]!==40 || logo.readUInt16LE(12)!==128 || logo.readUInt16LE(14)!==128) throw Error('Invalid Ecap launcher TGA');
+console.log('Texture PASS: EcapLogo, 128x128 BGRA');
+for (const [name,w,h] of [['Cryptgate',512,512],['Plaguewell',512,512],['WorgenWolf',512,256],['Moonbough',512,512],['VerdantRoot',512,512],['LunarRelic',512,512],['StormhornTotem',512,512],['Felwing',512,512],['FelwingGlyphAtlas',2048,2048],['VioletSpire',512,512],['ArcaneCrystal',256,256],['ArcaneSigil',256,256],...['Cinderforged','Cindermaw','CinderforgedEmission','CinderforgedBloom','CindermawEmission','CindermawBloom','Rimeforged','Rimeguard','RimeforgedRunes','RimeforgedRunesBloom','RimeforgedIce','RimeforgedIceBloom','RimeguardRunes','RimeguardRunesBloom','RimeguardIce','RimeguardIceBloom','RimeguardEyes','RimeguardEyesBloom'].map(n=>[n,512,512])]) {
   const tga = fs.readFileSync(`Media/${name}.tga`);
   if(tga.length !== 18+w*h*4 || tga.readUInt16LE(12)!==w || tga.readUInt16LE(14)!==h || tga[2]!==2 || tga[16]!==32 || tga[17]!==40) throw Error('Invalid TGA: '+name);
   let clear=0, visible=0;
@@ -59,6 +62,8 @@ for(const name of ['Undead','Lordaeron','Seraph','Sanctum','Umbra','Eclipse']) {
   if(clear<1000||solid<1000)throw Error('Priest texture alpha missing '+name);
 }
 require('./test-mipmaps.cjs');
+require('./test-warlock.cjs');
+require('./test-liquid.cjs');
 require('./test-moonwell-repaint.cjs');
 console.log('Base textures PASS: four priest bases plus Undead/Lordaeron, 512-square RGBA with clear/opaque pixels');
 const kirin=fs.readFileSync(externalMedia['Media/KirinTor.tga']);

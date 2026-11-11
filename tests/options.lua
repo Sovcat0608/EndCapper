@@ -19,6 +19,10 @@ local function widget()
     function w:GetChecked() return self.checked end
     function w:SetEnabled(v) self.enabled=v end
     function w:SetScript(name,fn) self.scripts[name]=fn end
+    function w:HookScript(name,fn)
+        local old=self.scripts[name]
+        self.scripts[name]=function(...) if old then old(...) end;fn(...) end
+    end
     function w:Show() self.shown=true end
     function w:Hide()
         local was=self.shown; self.shown=false
@@ -29,7 +33,10 @@ local function widget()
     function w:CreateFontString() return widget() end
     function w:CreateTexture() return widget() end
     function w:SetMinMaxValues(low,high) self.low,self.high=low,high end
+    function w:GetMinMaxValues() return self.low,self.high end
+    function w:GetWidth() return self.width or 2000 end
     function w:SetValue(v)
+        if self.low then v=math.max(self.low,math.min(self.high,v)) end
         self.value=v
         if self.scripts.OnValueChanged then self.scripts.OnValueChanged(self,v) end
     end
@@ -53,7 +60,36 @@ local function widget()
     return w
 end
 local widgets={}
-function CreateFrame(_,_,parent) local w=widget(); w.parent=parent;widgets[#widgets+1]=w;return w end
+MinimalSliderWithSteppersMixin={Label={Right=2}}
+function PanelTemplates_SelectTab(tab) tab:SetEnabled(false) end
+function PanelTemplates_DeselectTab(tab) tab:SetEnabled(true) end
+function CreateFrame(_,_,parent,template)
+    local w=widget();w.parent=parent;w.template=template;widgets[#widgets+1]=w
+    if template=="MinimalSliderWithSteppersTemplate" then
+        w.Slider,w.Back,w.Forward=widget(),widget(),widget()
+        function w:UpdateStepperStates()
+            local value=self.Slider:GetValue()
+            self.Back:SetEnabled(self.enabled and value>self.Slider.low)
+            self.Forward:SetEnabled(self.enabled and value<self.Slider.high)
+        end
+        function w:Init(value,low,high,steps,formatters)
+            self.Slider:SetMinMaxValues(low,high)
+            local step=(high-low)/steps
+            self.Back:SetScript("OnClick",function() self.Slider:SetValue(self.Slider:GetValue()-step) end)
+            self.Forward:SetScript("OnClick",function() self.Slider:SetValue(self.Slider:GetValue()+step) end)
+            self.Slider:SetScript("OnValueChanged",function(_,v)
+                self.rightText=formatters[MinimalSliderWithSteppersMixin.Label.Right](v)
+                self:UpdateStepperStates()
+            end)
+            self.Slider:SetValue(value)
+        end
+        function w:SetEnabled(enabled)
+            self.enabled=enabled;self.Slider:EnableMouse(enabled);self:UpdateStepperStates()
+        end
+        function w:IsSliderEnabled() return self.enabled end
+    end
+    return w
+end
 function InCombatLockdown() return false end
 UIParent=widget(); UISpecialFrames={}
 local applied={}
@@ -165,7 +201,7 @@ p:Hide()
 print('PASS: Felwing dev radios, separate tuning/layers, report/reset and artwork grid spacing')
 
 -- Checkbox reverses the per-artwork default, while stored flip stays a raw mirror.
-local mirrorSide={frostmourneHilt='right',frostmourneBlade='left',seraph='left',sanctum='left',umbra='left',eclipse='left',skull='left',lordaeron='right',wolf='right',whiteWorgen='left',moonbough='left',verdantRoot='left',moonwell='left',
+local mirrorSide={cryptgate='left',plaguewell='right',hexbound='right',soulbound='left',frostmourneHilt='right',frostmourneBlade='left',seraph='left',sanctum='left',umbra='left',eclipse='left',skull='left',lordaeron='right',wolf='right',whiteWorgen='left',moonbough='left',verdantRoot='left',moonwell='left',
     lunarRelic='left',stormhornTotem='right',felwing='right',violetSpire='left',kirinTor='left',cinderforged='left',cindermaw='left',rimeforged='left',rimeguard='left'}
 EndCapperDB=E.Normalize(nil)
 for _,side in ipairs({'left','right'}) do
@@ -175,12 +211,17 @@ for _,side in ipairs({'left','right'}) do
         local expected=mirrorSide[art.id]==side
         choose(art.id)
         assert(not p.flip.checked and E.draft[side].flip==expected, art.id..' default '..side)
-        p.flip:Click(); assert(p.flip.checked and E.draft[side].flip==not expected)
-        E.Commit(); EndCapperDB=E.Normalize(EndCapperDB); E.Begin(); E.RefreshOptions()
-        assert(p.flip.checked and E.draft[side].flip==not expected, 'checked survives reload')
-        p.flip:Click(); assert(not p.flip.checked and E.draft[side].flip==expected)
-        E.Commit(); EndCapperDB=E.Normalize(EndCapperDB); E.Begin(); E.RefreshOptions()
-        assert(not p.flip.checked and E.draft[side].flip==expected, 'default survives reload')
+        if not art.path then
+            assert(not p.flip.enabled and not p.snapBottom.enabled and not p.sliders.size.mouse)
+            E.Commit();E.Begin();E.RefreshOptions()
+        else
+            p.flip:Click();assert(p.flip.checked and E.draft[side].flip==not expected)
+            E.Commit(); EndCapperDB=E.Normalize(EndCapperDB); E.Begin(); E.RefreshOptions()
+            assert(p.flip.checked and E.draft[side].flip==not expected, 'checked survives reload')
+            p.flip:Click(); assert(not p.flip.checked and E.draft[side].flip==expected)
+            E.Commit(); EndCapperDB=E.Normalize(EndCapperDB); E.Begin(); E.RefreshOptions()
+            assert(not p.flip.checked and E.draft[side].flip==expected, 'default survives reload')
+        end
     end
     choose('moonbough'); p.flip:Click()
     choose('wolf')
@@ -215,7 +256,7 @@ assert(p.dev.sliders.trailX.value==-30 and p.dev.sliders.trailOpacity.value==21 
 p.dev.report:Click();assert(printed:find('Violetspire / Arcane Glow',1,true))
 p.dev.reset:Click();assert(p.dev.sliders.trailX.value==-23 and p.dev.sliders.trailOpacity.value==61 and not p.dev.behind.checked)
 p:Hide();E.OpenOptions('right');assert(p.dev.sliders.trailX.value==-30)
-assert(p.height==574 and p.artDropdowns.left.point[3]-p.artDropdowns.left.height>p.controls.point[3]+p.flip.point[3])
+assert(p.height==614 and p.artDropdowns.left.point[3]-p.artDropdowns.left.height>p.controls.point[3]+p.flip.point[3])
 p:Hide()
 print('PASS: arcane dev glow calibration, Print/Reset/Cancel/reload, layer controls and artwork grid spacing')
 EndCapperDB=E.Normalize({version=14,left={art='violetSpire'},right={art='violetSpire'}})
@@ -258,7 +299,7 @@ for _,art in ipairs({'rimeforged','rimeguard'}) do
     p.dev.radios.coldFlame:Click();assert(p.dev.sliders.trailX.value==(art=='rimeforged' and -150 or -89))
     assert(p.dev.note.text:find('emission stays fixed',1,true))
 end
-assert(p.height==574)
+assert(p.height==614)
 print('PASS: frost native edit radios, independent slider/report controls and fourteen-choice grid')
 choose('moonwell');selected('moonwellGlow')
 assert(p.dev.radios.waterRipple.shown and not p.dev.radios.frostEnchant.shown)
@@ -358,7 +399,7 @@ print('PASS: Moonbough/Lunar hide removed radio, Verdant retains it')
 
 -- Shared controls exercise the real panel handlers, with persistence and rollback.
 EndCapperDB=E.Normalize({left={art='seraph',size=120,x=12,y=-8},right={art='wolf',size=85}})
-E.OpenOptions('left');assert(not p.link.checked and not p.swap:IsShown() and not p.separation:IsShown())
+E.OpenOptions('left');assert(not p.link.checked and not p.swap:IsShown() and not p.separation.control:IsShown())
 assert(p.artDropdowns.left.point[2]<p.artDropdowns.right.point[2])
 assert(p.artDropdowns.left.menuDescription.scrollHeight==280 and p.artDropdowns.right.menuDescription.scrollHeight==280)
 assert(E.PairByArt.moonbough==E.PairByArt.lunarRelic and E.PairByArt.verdantRoot==E.PairByArt.moonwell)
@@ -419,7 +460,7 @@ end
 p.link:Click()
 assert(p.pairDropdown:IsShown() and not p.artDropdowns.left:IsShown() and not p.artDropdowns.right:IsShown())
 p.pairDropdown:GenerateMenu()
-assert(#p.pairDropdown.menuDescription.items==14 and p.pairDropdown.menuDescription.scrollHeight==280)
+assert(#p.pairDropdown.menuDescription.items==16 and p.pairDropdown.menuDescription.scrollHeight==280)
 for _,row in ipairs(E.ArtworkPairs) do
  choose(row[1])
  local left,right=row[1],row[2] or row[1]
@@ -571,3 +612,190 @@ p.swap:Click();assert(p.pairDropdown.text=='Frostblade / Frosthilt')
 p:Hide();E.devMode=false
 print('PASS: Frostmourne real dev controls for all three hilt effects, Print, Save/reload, isolated Reset, and linked Swap')
 
+-- Saved drag coordinates use the same controls and exit callback as other edits.
+p:Hide()
+local previousRegistry=EventRegistry
+local callbacks={}
+EventRegistry={RegisterCallback=function(_,name,fn) callbacks[name]=fn end}
+E.registryHooked=nil;E.AttachOptions()
+EndCapperDB=E.Normalize({version=34,left={art="wolf",frameX=300,frameBottom=false}})
+E.OpenOptions("left")
+assert(not p.save.enabled and not E.draft.left.frameY)
+E.draft.left.frameX=420;E.draft.left.frameY=190;E.UpdateSaveButton()
+assert(p.save.enabled);p.save:Click()
+assert(not p.save.enabled and EndCapperDB.left.frameX==420 and EndCapperDB.left.frameY==190)
+E.draft.left.frameY=250;E.UpdateSaveButton();assert(p.save.enabled)
+callbacks["EditMode.Exit"]()
+assert(not E.draft and EndCapperDB.left.frameY==190 and not p:IsShown())
+EventRegistry=previousRegistry
+print("PASS: Save commits drag coordinates and leaving Edit Mode cancels the next preview")
+
+E.OpenOptions("left")
+assert(p.showLauncher:GetChecked())
+p.showLauncher:Click();assert(not E.draft.launcher.shown and p.save.enabled)
+p.save:Click();assert(not EndCapperDB.launcher.shown and not p.save.enabled)
+p.showLauncher:Click();assert(E.draft.launcher.shown and p.save.enabled)
+p:Hide();assert(not EndCapperDB.launcher.shown)
+local oldDialog=EditModeSystemSettingsDialog
+local oldHook=hooksecurefunc
+local dialog=widget()
+function dialog:UpdateDialog() end
+function dialog:HookScript(name,fn) self:SetScript(name,fn) end
+function dialog:Show()
+    self.shown=true
+    if self.scripts.OnShow then self.scripts.OnShow(self) end
+end
+hooksecurefunc=function(object,method,fn)
+    local original=object[method]
+    object[method]=function(...) original(...);fn(...) end
+end
+EditModeSystemSettingsDialog=dialog;E.dialogHooked=nil;E.AttachOptions()
+E.caps.left.nativeFrame={};E.caps.left.suppress=true
+dialog:UpdateDialog(E.caps.left.nativeFrame);dialog:Show()
+assert(not dialog:IsShown(),"custom native dialog remains closed even when shown after UpdateDialog")
+E.caps.left.suppress=false;dialog:UpdateDialog(E.caps.left.nativeFrame);dialog:Show()
+assert(dialog:IsShown() and not p:IsShown(),"Default retains the Blizzard dialog")
+E.caps.left.suppress=true;E.DismissNativeCapSettings();assert(not dialog:IsShown())
+dialog:UpdateDialog({});dialog:Show();assert(dialog:IsShown(),"other Blizzard settings remain available")
+EditModeSystemSettingsDialog=oldDialog;hooksecurefunc=oldHook
+print("PASS: launcher checkbox Save/Cancel and side-specific Blizzard settings suppression")
+
+EndCapperDB=E.Normalize({left={art="wolf"},right={art="whiteWorgen"}})
+local highlightedSide
+E.UpdateCapSelection=function(side) highlightedSide=side end
+E.OpenOptions("left");applied={}
+assert(highlightedSide=="left" and not p.left.enabled and p.right.enabled)
+E.SelectCapSide("right")
+assert(highlightedSide=="right" and p.left.enabled and not p.right.enabled and p.heading.text=="Right end cap")
+assert(#applied==0 and not p.save.enabled,"focusing a cap leaves the draft clean")
+p.left:Click();assert(highlightedSide=="left")
+p.link:Click();assert(not p.left.enabled and not p.right.enabled)
+E.SelectCapSide("right")
+assert(highlightedSide=="right" and p.heading.text=="Linked end caps")
+assert(p.dev.heading.text:find("right",1,true))
+p:Hide()
+print("PASS: frame focus and panel side selectors stay in sync, including linked developer controls")
+
+EndCapperDB=E.Normalize({left={art="wolf"},right={art="whiteWorgen"}})
+E.OpenOptions("left")
+assert(not p.snapCenter:IsShown() and not p.separation.control:IsShown())
+local function checkChevrons(slider,read)
+    local low,high=slider:GetMinMaxValues()
+    assert(slider.control.template=="MinimalSliderWithSteppersTemplate")
+    slider:SetValue(low+1)
+    assert(read()==low+1,"slider updates the setting")
+    slider.control.Forward:Click();assert(read()==low+2,"right chevron adds one")
+    slider.control.Back:Click();assert(read()==low+1,"left chevron subtracts one")
+    slider:SetValue(high);slider.control.Forward:Click();assert(read()==high,"upper bound")
+    slider:SetValue(low);slider.control.Back:Click();assert(read()==low,"lower bound")
+end
+for key,slider in pairs(p.sliders) do checkChevrons(slider,function() return E.draft.left[key] end) end
+p.link:Click()
+assert(p.snapCenter:IsShown() and p.snapCenter.enabled and p.separation.control:IsShown())
+checkChevrons(p.sliders.x,function() return E.draft.pair.x end)
+checkChevrons(p.separation,function() return E.draft.pair.separation end)
+p.sliders.x:SetValue(300);p.sliders.y:SetValue(17);p.separation:SetValue(713)
+p.snapCenter:Click()
+assert(E.draft.pair.x==0 and not E.draft.pair.centerX and p.sliders.x.value==0)
+assert(p.xCaption.text=="Pair centre X offset" and p.sliders.x.control.rightText=="0" and E.draft.pair.y==17 and E.draft.pair.separation==713)
+p.save:Click();assert(EndCapperDB.pair.x==0 and EndCapperDB.pair.separation==713 and not p.save.enabled)
+p:Hide()
+
+EndCapperDB=E.Normalize({left={art="violetSpire"},right={art="seraph"}})
+E.devMode=true;E.OpenOptions("left")
+for key,slider in pairs(p.dev.sliders) do
+    checkChevrons(slider,function() return E.GetEffectConfig(E.draft.left)[key] end)
+end
+checkChevrons(p.dev.seal.slider,function() return E.GetEffectConfig(E.draft.left).sealSize end)
+p.right:Click();p.dev.haloTab:Click()
+for key,slider in pairs(p.dev.halo.sliders) do
+    checkChevrons(slider,function() return E.GetHaloConfig(E.draft.right)[key] end)
+end
+p:Hide()
+print("PASS: Snap to center and one-unit chevrons for every artwork and developer slider")
+
+EndCapperDB=E.Normalize({version=37,left={art="wolf",size=119},right={art="whiteWorgen"}})
+E.OpenOptions("left")
+assert(p.modeTabs["end"].text=="End Cap" and p.modeTabs.corner.text=="Corner Cap")
+assert(p.enableMode:GetChecked() and not p.modeTabs["end"].enabled and not p.save.enabled)
+p.modeTabs.corner:Click()
+assert(E.draft.mode=="corner" and not p.enableMode:GetChecked() and not p.save.enabled)
+p.enableMode:Click();p.sliders.size:SetValue(163);p.link:Click()
+assert(not p.separation.control:IsShown() and not p.snapCenter:IsShown() and p.snapBottom.text=="Snap to corners")
+p.sliders.x:SetValue(40);p.snapBottom:Click();assert(E.draft.pair.x==0)
+p.modeTabs["end"]:Click();assert(E.draft.enabled and E.draft.left.size==119 and not E.draft.pair.linked)
+p.save:Click();p:Hide()
+E.OpenOptions("left");p.modeTabs.corner:Click()
+assert(E.draft.enabled and E.draft.pair.linked and E.draft.pair.size==163 and not p.save.enabled)
+p.enableMode:Click();p:Hide()
+assert(EndCapperDB.otherMode.enabled,"Cancel keeps the saved Corner Cap toggle")
+print("PASS: native tabs, separate Enable toggles, saved mode settings and linked corner controls")
+
+EndCapperDB=E.Normalize({left={art='hexbound'},right={art='soulbound'}})
+E.devMode=true;E.OpenOptions('left')
+for _,side in ipairs({'left','right'}) do
+    E.OpenOptions(side)
+    for index,id in ipairs({'felFlame','felMagic','shadowGlow'}) do
+        assert(p.dev.radios[id].shown and p.dev.radios[id].enabled)
+        p.dev.radios[id]:Click();p.dev.sliders.trailOpacity:SetValue(index*10)
+        p.dev.sliders.trailX:SetValue(index*7)
+    end
+    for index,id in ipairs({'felFlame','felMagic','shadowGlow'}) do
+        p.dev.radios[id]:Click()
+        assert(p.dev.sliders.trailOpacity.value==index*10 and p.dev.sliders.trailX.value==index*7)
+    end
+end
+p.save:Click();p:Hide()
+EndCapperDB=E.Normalize(EndCapperDB)
+for _,side in ipairs({'left','right'}) do
+    for index,id in ipairs({'felFlame','felMagic','shadowGlow'}) do
+        assert(E.GetEffectConfig(EndCapperDB[side],id).trailOpacity==index*10)
+    end
+end
+print('PASS: both warlock sisters expose all three dev radios and preserve independent tuning through Save and reload')
+
+EndCapperDB=E.Normalize({version=40,left={art='cryptgate'},right={art='plaguewell'}})
+E.devMode=true;E.OpenOptions('left')
+local cryptIDs={'greenGroundFog','eerieGroundFog','candleFlame','amberEyeLeft','amberEyeRight'}
+for index,id in ipairs(cryptIDs) do
+    assert(p.dev.radios[id].shown and p.dev.radios[id].enabled)
+    p.dev.radios[id]:Click()
+    p.dev.sliders.trailX:SetValue(index*9)
+    p.dev.sliders.trailY:SetValue(-index*5)
+    p.dev.sliders.trailSize:SetValue(50+index)
+    p.dev.sliders.trailAngle:SetValue(index*15)
+    p.dev.sliders.trailOpacity:SetValue(index*7)
+end
+for index,id in ipairs(cryptIDs) do
+    p.dev.radios[id]:Click()
+    assert(p.dev.sliders.trailX.value==index*9 and p.dev.sliders.trailOpacity.value==index*7)
+end
+p.dev.radios.amberEyeLeft:Click();p.dev.behind:Click()
+p.save:Click();p:Hide();EndCapperDB=E.Normalize(EndCapperDB)
+local savedEye=E.GetEffectConfig(EndCapperDB.left,'amberEyeLeft')
+assert(savedEye.effectLayer=='back')
+for index,id in ipairs(cryptIDs) do
+    local c=E.GetEffectConfig(EndCapperDB.left,id)
+    assert(c.trailX==index*9 and c.trailY==-index*5 and c.trailSize==50+index and c.trailAngle==index*15 and c.trailOpacity==index*7)
+end
+E.OpenOptions('left');p.dev.radios.amberEyeRight:Click();p.dev.reset:Click()
+assert(p.dev.sliders.trailX.value==-16 and E.GetEffectConfig(E.draft.left,'amberEyeLeft').trailX==36)
+p:Hide();assert(E.GetEffectConfig(EndCapperDB.left,'amberEyeRight').trailX==45)
+E.OpenOptions('right')
+assert(p.dev.radios.greenGroundFog.shown and p.dev.radios.eerieGroundFog.shown)
+assert(not p.dev.radios.candleFlame.shown and not p.dev.radios.amberEyeLeft.shown and not p.dev.radios.amberEyeRight.shown)
+assert(p.dev.radios.lampGlow.shown and p.dev.radios.lampGlow.enabled)
+p.dev.radios.lampGlow:Click()
+assert(p.dev.sliders.trailX.value==11 and p.dev.sliders.trailY.value==11 and p.dev.sliders.trailSize.value==70)
+p.dev.sliders.trailOpacity:SetValue(42);p.dev.sliders.trailX:SetValue(13)
+p.save:Click();p:Hide();EndCapperDB=E.Normalize(EndCapperDB)
+assert(E.GetEffectConfig(EndCapperDB.right,'lampGlow').trailOpacity==42)
+assert(E.GetEffectConfig(EndCapperDB.right,'lampGlow').trailX==13)
+assert(E.GetEffectConfig(EndCapperDB.right,'greenGroundFog').trailOpacity==30)
+E.OpenOptions('right');p.dev.radios.lampGlow:Click();p.dev.reset:Click()
+assert(p.dev.sliders.trailOpacity.value==35 and p.dev.sliders.trailX.value==11)
+p:Hide();assert(E.GetEffectConfig(EndCapperDB.right,'lampGlow').trailX==13)
+E.OpenOptions('left');assert(not p.dev.radios.lampGlow.shown)
+p.modeTabs.corner:Click();assert(E.GetEffectConfig(E.draft.left,'amberEyeLeft').trailX==-27)
+p:Hide()
+print('PASS: Undercity five/three effect controls, independent eyes/lamp glow, Save/reload, isolated Reset/Cancel and mode tuning')

@@ -1,9 +1,14 @@
 local _, E = ...
-E.schemaVersion = 34
+E.schemaVersion = 41
 -- Approved multi-art bake from applied 2026-11-10 save; see docs/rebake-rc14.md.
 E.UndeadArtworks={skull=true,lordaeron=true}
 E.WorgenArtworks={wolf=true,whiteWorgen=true}
 E.FrostmourneArtworks={frostmourneHilt=true,frostmourneBlade=true}
+E.WarlockArtworks={hexbound="Hexbound",soulbound="Soulbound"}
+E.UndercityEffects={
+    cryptgate={"greenGroundFog","eerieGroundFog","candleFlame","amberEyeLeft","amberEyeRight"},
+    plaguewell={"greenGroundFog","eerieGroundFog","lampGlow"},
+}
 E.PriestArtworks={seraph="Seraph",sanctum="Sanctum",umbra="Umbra",eclipse="Eclipse"}
 E.HaloArtworks={seraph="SeraphHalo",umbra="UmbraHalo"}
 E.PriestEffectPairs={seraph={"holyGlow","sunRays"},sanctum={"holyGlow","sunRays"},
@@ -33,6 +38,23 @@ E.devArtworks.moonwell=true
 E.devArtworks.skull=true
 E.devArtworks.lordaeron=true
 E.devArtworks.whiteWorgen=true
+for art in pairs(E.UndercityEffects) do
+    E.devArtworks[art]=true
+    -- Corner-mode bake, 2026-11-11 21:21:12 UTC: left Cryptgate / right Plaguewell.
+    -- Artwork-relative defaults are shared by End Cap and Corner Cap modes.
+    local crypt=art=="cryptgate"
+    E.EffectProfiles[art]={nativeEffect="greenGroundFog",trailSize=63,trailAngle=90,
+        trailX=crypt and 2 or 0,trailY=crypt and -79 or -85,
+        trailOpacity=crypt and 12 or 30,effectLayer="front"}
+end
+for art in pairs(E.WarlockArtworks) do
+    E.devArtworks[art]=true
+end
+-- Applied 2026-11-11 19:44:20 UTC: Hexbound LEFT / Soulbound RIGHT.
+E.EffectProfiles.hexbound={nativeEffect="felFlame",trailSize=114,trailAngle=-180,
+    trailX=45,trailY=27,trailOpacity=30,effectLayer="front"}
+E.EffectProfiles.soulbound={nativeEffect="felFlame",trailSize=135,trailAngle=-180,
+    trailX=-30,trailY=23,trailOpacity=30,effectLayer="front"}
 -- Baked from the left Frosthilt and right Frostblade calibration.
 for art in pairs(E.FrostmourneArtworks) do E.devArtworks[art]=true end
 E.EffectProfiles.frostmourneHilt={nativeEffect="frostGlow",trailSize=110,trailAngle=90,
@@ -83,8 +105,19 @@ E.effectChoices[#E.effectChoices+1]={id="kirinSeal",name="Kirin Tor Seal"}
 E.effectChoices[#E.effectChoices+1]={id="worgenGloom",name="Gloom"}
 E.effectChoices[#E.effectChoices+1]={id="frostGlow",name="Blue Frost Glow"}
 E.effectChoices[#E.effectChoices+1]={id="frostMist",name="Icy Mist"}
-local thirdEffect = {frostmourneHilt = "coldFlame"}
+E.effectChoices[#E.effectChoices+1]={id="felFlame",name="Fel Flame"}
+E.effectChoices[#E.effectChoices+1]={id="felMagic",name="Fel Casting"}
+E.effectChoices[#E.effectChoices+1]={id="shadowGlow",name="Shadow Glow"}
+E.effectChoices[#E.effectChoices+1]={id="greenGroundFog",name="Rot Fog"}
+E.effectChoices[#E.effectChoices+1]={id="eerieGroundFog",name="Blue Mist"}
+E.effectChoices[#E.effectChoices+1]={id="candleFlame",name="Candle Flame"}
+E.effectChoices[#E.effectChoices+1]={id="amberEyeLeft",name="Left Eye Trail"}
+E.effectChoices[#E.effectChoices+1]={id="amberEyeRight",name="Right Eye Trail"}
+E.effectChoices[#E.effectChoices+1]={id="lampGlow",name="Amber Lamp Glow"}
+local thirdEffect = {frostmourneHilt = "coldFlame",hexbound="shadowGlow",soulbound="shadowGlow"}
 local function alternateEffect(art)
+    if E.UndercityEffects[art] then return "eerieGroundFog" end
+    if E.WarlockArtworks[art] then return "felMagic" end
     if E.FrostmourneArtworks[art] then return "frostMist" end
     if E.WorgenArtworks[art] then return "worgenGloom" end
     if art=="kirinTor" then return "kirinSeal" end
@@ -98,6 +131,12 @@ local function alternateEffect(art)
     if art=="verdantRoot" then return "faerieFire" end
 end
 local function usesSeparateTuning(art, id)
+    if E.UndercityEffects[art] then
+        for index,effect in ipairs(E.UndercityEffects[art]) do
+            if index>1 and id==effect then return true end
+        end
+        return false
+    end
     return id ~= nil and (id == alternateEffect(art) or id == thirdEffect[art])
 end
 function E.CanSelectEffect(art, id)
@@ -106,6 +145,34 @@ function E.CanSelectEffect(art, id)
 end
 function E.GetEffectDefaults(art, id)
     local profile=E.EffectProfiles[art] or E.SkullEffect
+    if E.UndercityEffects[art] then
+        if id=="eerieGroundFog" then
+            local crypt=art=="cryptgate"
+            return {nativeEffect=id,trailSize=crypt and 121 or 133,trailAngle=crypt and 143 or 40,
+                trailX=crypt and -9 or -21,trailY=crypt and -43 or -113,trailOpacity=24,effectLayer="front"}
+        elseif art=="plaguewell" and id=="lampGlow" then
+            -- Painted lamp centre: u~0.57, v~0.426. Normal mirroring follows the cap.
+            return {nativeEffect=id,trailSize=70,trailAngle=90,trailX=11,trailY=11,trailOpacity=35,effectLayer="front"}
+        elseif art=="cryptgate" and id=="candleFlame" then
+            return {nativeEffect=id,trailSize=200,trailAngle=90,trailX=-45,trailY=1,trailOpacity=85,effectLayer="front"}
+        elseif art=="cryptgate" and (id=="amberEyeLeft" or id=="amberEyeRight") then
+            local left=id=="amberEyeLeft"
+            return {nativeEffect=id,trailSize=53,trailAngle=180,
+                trailX=left and -27 or -16,trailY=24,trailOpacity=35,effectLayer="front"}
+        end
+        return profile
+    end
+    if E.WarlockArtworks[art] and (id=="felMagic" or id=="shadowGlow") then
+        local hex=art=="hexbound"
+        if id=="felMagic" then
+            return {nativeEffect=id,trailSize=hex and 80 or 111,trailAngle=90,
+                trailX=hex and 48 or -30,trailY=hex and 44 or 52,
+                trailOpacity=hex and 14 or 17,effectLayer=hex and "front" or "back"}
+        end
+        return {nativeEffect=id,trailSize=200,trailAngle=90,
+            trailX=hex and 14 or -21,trailY=hex and -58 or -53,
+            trailOpacity=32,effectLayer="front"}
+    end
     if art=="frostmourneHilt" and id=="coldFlame" then
         return {nativeEffect="coldFlame",trailSize=50,trailAngle=-162,
             trailX=-36,trailY=17,trailOpacity=98,effectLayer="front"}
@@ -176,6 +243,10 @@ function E.SelectedEffect(config)
     return (E.EffectProfiles[config.art] or E.SkullEffect).nativeEffect
 end
 E.artworks = {
+    { id = "cryptgate", name = "Cryptgate", path = "Interface\\AddOns\\EndCapper\\Media\\Cryptgate.tga", width=225, height=150 },
+    { id = "plaguewell", name = "Plaguewell", path = "Interface\\AddOns\\EndCapper\\Media\\Plaguewell.tga", width=225, height=150 },
+    { id = "hexbound", name = "Hexbound", path = "Interface\\AddOns\\EndCapper\\Media\\Hexbound.tga", width=225, height=150 },
+    { id = "soulbound", name = "Soulbound", path = "Interface\\AddOns\\EndCapper\\Media\\Soulbound.tga", width=225, height=150 },
     { id = "skull", name = "Undead", path = "Interface\\AddOns\\EndCapper\\Media\\Undead.tga", width=225, height=150 },
     { id = "lordaeron", name = "Lordaeron", path = "Interface\\AddOns\\EndCapper\\Media\\Lordaeron.tga", width=225, height=150 },
     { id = "wolf", name = "Shadowfang", path = "Interface\\AddOns\\EndCapper\\Media\\WorgenBlack.tga", width=200, height=100 },
@@ -205,6 +276,8 @@ E.artworkByID = {}
 for _, artwork in ipairs(E.artworks) do E.artworkByID[artwork.id] = artwork end
 -- Chooser rows are also the authoritative sister relationships.
 E.ArtworkPairs={{"skull","lordaeron"},{"wolf","whiteWorgen"},{"moonbough","lunarRelic"},
+    {"cryptgate","plaguewell"},
+    {"hexbound","soulbound"},
     {"verdantRoot","moonwell"},{"stormhornTotem"},{"felwing"},
     {"violetSpire","kirinTor"},{"cinderforged","cindermaw"},{"rimeforged","rimeguard"},
     {"seraph","sanctum"},{"umbra","eclipse"},{"frostmourneHilt","frostmourneBlade"},{"default","hidden"}}
@@ -215,6 +288,8 @@ end
 -- Saved flip remains the actual texture/effect mirror state for compatibility.
 -- The UI checkbox reverses this artwork's default facing on the selected side.
 function E.DefaultMirror(art, side)
+    if E.UndercityEffects[art] then return side==(art=="cryptgate" and "left" or "right") end
+    if E.WarlockArtworks[art] then return side==(art=="hexbound" and "right" or "left") end
     if E.FrostmourneArtworks[art] then return side==(art=="frostmourneHilt" and "right" or "left") end
     if art=="whiteWorgen" then return side=="left" end
     if art=="skull" then return side=="left" end
@@ -309,8 +384,10 @@ local function normalizeDevArtwork(value, art)
             selected=alternate
         end
         result.selectedEffect=usesSeparateTuning(art,selected) and selected or E.EffectProfiles[art].nativeEffect
-        for _, id in ipairs({alternate,thirdEffect[art]}) do
-            if type(value[id])=="table" then result[id]=normalizeEffect(value[id],E.GetEffectDefaults(art,id)) end
+        for _, id in ipairs(E.UndercityEffects[art] or {alternate,thirdEffect[art]}) do
+            if usesSeparateTuning(art,id) and type(value[id])=="table" then
+                result[id]=normalizeEffect(value[id],E.GetEffectDefaults(art,id))
+            end
         end
     end
     return result
@@ -420,12 +497,19 @@ function E.NormalizeSide(value, side)
         x = number(value.x, 0, -200, 200), y = number(value.y, 0, -200, 200),
         frameBottom=value.frameBottom~=false,artBottom=value.artBottom~=false,
         frameX=type(value.frameX)=="number" and number(value.frameX,0,-10000,10000) or nil,
+        frameY=type(value.frameY)=="number" and number(value.frameY,0,-10000,10000) or nil,
         effects = true, nativeSmoke = true, devEffects=devEffects, effectLayers=effectLayers,halos=halos })
 end
-function E.Normalize(value)
-    value = type(value) == "table" and value or {}
-    local result = { version = E.schemaVersion, left = E.NormalizeSide(value.left, "left"), right = E.NormalizeSide(value.right, "right") }
-    if type(value.version)~="number" or value.version<14 then
+local function normalizeMode(value,mode,version,skipProfiles)
+    local enabled=value.enabled
+    if type(enabled)~="boolean" then enabled=mode=="end" end
+    local result={mode=mode,enabled=enabled,left=E.NormalizeSide(value.left,"left"),right=E.NormalizeSide(value.right,"right")}
+    if mode=="corner" then
+        for _,side in ipairs({"left","right"}) do
+            if result[side].art=="default" then result[side].art="hidden" end
+        end
+    end
+    if type(version)~="number" or version<14 then
         -- Adopt the requested front glow once, including previously saved back layers.
         -- Later developer choices remain editable and persist normally.
         for _,side in ipairs({"left","right"}) do
@@ -435,13 +519,26 @@ function E.Normalize(value)
             result[side]=E.GetEffectConfig(c)
         end
     end
+    if type(version)~="number" or version<40 then
+        -- Adopt Soulbound's baked native layer order once on older saves.
+        -- Subsequent developer front/back choices continue to persist normally.
+        for _,side in ipairs({"left","right"}) do
+            local c=result[side]
+            c.effectLayers.soulbound=c.effectLayers.soulbound or {}
+            for _,id in ipairs({"felFlame","felMagic","shadowGlow"}) do
+                c.effectLayers.soulbound[id]=E.GetEffectDefaults("soulbound",id).effectLayer
+            end
+            result[side]=E.GetEffectConfig(c)
+        end
+    end
     local p=type(value.pair)=="table" and value.pair or {}
     local art=E.PairByArt[p.art] and p.art or result.left.art
+    if mode=="corner" and art=="default" then art="hidden" end
     -- Default and Hidden are utility choices, not sisters.
     local row=E.PairByArt[art]
     result.pair={linked=p.linked==true,art=row[1]=="default" and art or row[1],
         swapped=p.swapped==true,flip=p.flip==true,size=number(p.size,100,50,200),
-        x=number(p.x,0,-200,200),y=number(p.y,0,-200,200),
+        x=number(p.x,0,-10000,10000),y=number(p.y,0,-200,200),
         separation=number(p.separation,0,0,2000),artBottom=p.artBottom~=false,
         separationInitialized=separationInitialized(p),
         centerX=type(p.centerX)=="number" and number(p.centerX,0,-10000,10000) or nil}
@@ -458,9 +555,10 @@ function E.Normalize(value)
         -- Replace the old linked clone with the new sister, keeping black left.
         result.pair.swapped=false
     end
+    if mode=="corner" then result.pair.centerX=nil end
     if result.pair.linked then E.SyncPair(result) end
     result.positionProfiles={}
-    if type(value.positionProfiles)=="table" then
+    if not skipProfiles and type(value.positionProfiles)=="table" then
         local count=0
         for key,profile in pairs(value.positionProfiles) do
             if type(key)=="string" and #key<=512 and type(profile)=="table" and count<128 then
@@ -470,7 +568,45 @@ function E.Normalize(value)
     end
     return result
 end
-E.SidePositionFields={"size","x","y","frameBottom","artBottom","frameX"}
+function E.Normalize(value,skipProfiles)
+    value=type(value)=="table" and value or {}
+    local mode=value.mode=="corner" and "corner" or "end"
+    local otherMode=mode=="end" and "corner" or "end"
+    local result=normalizeMode(value,mode,value.version,skipProfiles)
+    result.version=E.schemaVersion
+    local launcher=type(value.launcher)=="table" and value.launcher or {}
+    result.launcher={shown=launcher.shown~=false,
+        x=number(launcher.x,nil,0,10000),y=number(launcher.y,nil,0,10000)}
+    if type(value.otherMode)=="table" then
+        result.otherMode=normalizeMode(value.otherMode,otherMode,value.version,skipProfiles)
+    else
+        -- Start the new mode with the current artwork and tuning at fresh anchors.
+        local other=normalizeMode(value,otherMode,value.version,true)
+        other.enabled=otherMode=="end"
+        E.SetPairOffset(other,0)
+        E.SnapToBottom(other,"left");E.SnapToBottom(other,"right")
+        for _,side in ipairs({"left","right"}) do
+            other[side].frameX=nil;other[side].x=0
+        end
+        result.otherMode=other
+    end
+    return result
+end
+
+function E.SelectMode(db,mode)
+    if mode==db.mode or not db.otherMode or mode~=db.otherMode.mode then return end
+    if E.StopCapDrag then E.StopCapDrag() end
+    local incoming=db.otherMode
+    db.otherMode={mode=db.mode,enabled=db.enabled,left=db.left,right=db.right,pair=db.pair,positionProfiles=db.positionProfiles}
+    db.mode,db.enabled=mode,incoming.enabled
+    db.left,db.right,db.pair,db.positionProfiles=incoming.left,incoming.right,incoming.pair,incoming.positionProfiles
+end
+
+function E.RenderFlip(config,mode)
+    return config.flip~=(mode=="corner")
+end
+
+E.SidePositionFields={"size","x","y","frameBottom","artBottom","frameX","frameY"}
 E.PairPositionFields={"linked","size","x","y","separation","separationInitialized","centerX","artBottom"}
 function E.NormalizePosition(value)
     local result={pair={}}
@@ -480,7 +616,7 @@ function E.NormalizePosition(value)
     end
     local p=type(value.pair)=="table" and value.pair or {}
     result.pair={linked=p.linked==true,size=number(p.size,100,50,200),
-        x=number(p.x,0,-200,200),y=number(p.y,0,-200,200),
+        x=number(p.x,0,-10000,10000),y=number(p.y,0,-200,200),
         separation=number(p.separation,0,0,2000),artBottom=p.artBottom~=false,
         separationInitialized=separationInitialized(p),
         centerX=type(p.centerX)=="number" and number(p.centerX,0,-10000,10000) or nil}
@@ -495,6 +631,7 @@ function E.RestorePosition(db,profile)
         for _,key in ipairs(E.SidePositionFields) do db[side][key]=profile[side][key] end
     end
     for _,key in ipairs(E.PairPositionFields) do db.pair[key]=profile.pair[key] end
+    if db.mode=="corner" then db.pair.centerX=nil end
     E.SyncPair(db)
 end
 function E.SyncPair(db)
@@ -507,7 +644,7 @@ function E.SyncPair(db)
     for _,side in ipairs({"left","right"}) do
         local c=db[side];c.art=side=="left" and left or right
         c.flip=p.flip ~= E.DefaultMirror(c.art,side)
-        -- Pair X and separation position native frames. Art stays centred on
+        -- Pair X and separation position custom frames. Art stays centred on
         -- its own draggable frame, with the existing crop-relative Y.
         c.size=p.size;c.x=0;c.y=p.y;c.artBottom=p.artBottom
         if p.centerX then c.frameX=p.centerX+p.x+E.PairFrameOffset(c,side,p.separation) end
@@ -523,18 +660,28 @@ function E.PairFrameOffset(config,side,gap,halfWidth)
     end
     return (side=="left" and -1 or 1)*(halfWidth+gap/2)
 end
+function E.SetPairOffset(db,offset)
+    db.pair.centerX=nil
+    db.pair.x=number(offset,0,-10000,10000)
+end
+
 function E.LinkPair(db,side,enabled)
+    if not enabled and db.pair.linked and E.RememberPairPositions then E.RememberPairPositions(db) end
     if enabled and not db.pair.linked then
         local c=db[side];local row=E.PairByArt[c.art]
         db.pair.art=row[1]=="default" and c.art or row[1]
         db.pair.swapped=row[2]~=nil and row[1]~="default" and ((c.art==row[2]) ~= (side=="right")) or false
         db.pair.flip=E.FlipChecked(c,side)
-        db.pair.size=c.size;db.pair.x=c.x;db.pair.y=c.y
+        if db.mode=="corner" then E.SetPairOffset(db,0)
+        else
+            local offset=E.GetLinkOffset and E.GetLinkOffset(db) or 0
+            E.SetPairOffset(db,offset+c.x)
+        end
+        db.pair.size=c.size;db.pair.y=c.y
         db.pair.artBottom=c.artBottom
-        db.pair.centerX=nil
     end
     db.pair.linked=enabled==true;E.SyncPair(db)
-    if db.pair.linked and not db.pair.separationInitialized then E.ResetPairSeparation(db);E.SyncPair(db) end
+    if db.mode~="corner" and db.pair.linked and not db.pair.separationInitialized then E.ResetPairSeparation(db);E.SyncPair(db) end
 end
 function E.ResetPairSeparation(db)
     -- The runtime supplies native geometry; 600 is an approximation only
@@ -550,9 +697,19 @@ end
 function E.SnapToBottom(db,side)
     if db.pair.linked then
         db.pair.y=0;db.pair.artBottom=true
-        db.left.frameBottom=true;db.right.frameBottom=true;E.SyncPair(db)
+        db.left.frameBottom=true;db.right.frameBottom=true
+        db.left.frameY=nil;db.right.frameY=nil;E.SyncPair(db)
     else
-        db[side].y=0;db[side].frameBottom=true;db[side].artBottom=true
+        db[side].y=0;db[side].frameBottom=true;db[side].artBottom=true;db[side].frameY=nil
+    end
+end
+function E.SnapToCorner(db,side)
+    E.SnapToBottom(db,side)
+    if db.pair.linked then
+        E.SetPairOffset(db,0)
+        db.left.frameX=nil;db.right.frameX=nil
+    else
+        db[side].x=0;db[side].frameX=nil
     end
 end
 function E.UV(coords, flip)
@@ -570,14 +727,15 @@ local function sameSettings(a,b)
     return true
 end
 local function editableSettings(db,includeEffects)
-    local result={pair={linked=db.pair.linked}}
+    local result={enabled=db.enabled,pair={linked=db.pair.linked}}
     if db.pair.linked then
-        for _,key in ipairs({"art","swapped","flip","size","x","y","separation","artBottom"}) do result.pair[key]=db.pair[key] end
+        for _,key in ipairs({"art","swapped","flip","size","x","y","separation","artBottom","centerX"}) do result.pair[key]=db.pair[key] end
     end
     for _,side in ipairs({"left","right"}) do
         local c=db[side];local settings={effects={}}
         for _,key in ipairs({"art","flip","size","x","y","frameBottom","artBottom"}) do settings[key]=c[key] end
-        if not db.pair.linked then settings.frameX=c.frameX end
+        if not db.pair.linked or db.mode=="corner" then settings.frameX=c.frameX end
+        if not c.frameBottom then settings.frameY=c.frameY end
         -- Compare effective tuning, so returning a slider to its original
         -- default does not count as a change merely because an override exists.
         if includeEffects then for art,profile in pairs(E.EffectProfiles) do
@@ -600,21 +758,26 @@ local function editableSettings(db,includeEffects)
 end
 function E.HasChanges()
     if not E.draft or not EndCapperDB then return false end
-    local function normalize(value)
-        return E.Normalize({version=value.version,left=value.left,right=value.right,pair=value.pair})
+    local draft,saved=E.Normalize(E.draft,true),E.Normalize(EndCapperDB,true)
+    if not sameSettings(draft.launcher,saved.launcher) then return true end
+    local savedTab,savedOther=saved,saved.otherMode
+    if draft.mode~=saved.mode then savedTab,savedOther=savedOther,savedTab end
+    for _,includeEffects in ipairs({false,true}) do
+        if not sameSettings(editableSettings(draft,includeEffects),editableSettings(savedTab,includeEffects)) or
+            not sameSettings(editableSettings(draft.otherMode,includeEffects),editableSettings(savedOther,includeEffects)) then return true end
     end
-    local draft,saved=normalize(E.draft),normalize(EndCapperDB)
-    if not sameSettings(editableSettings(draft,false),editableSettings(saved,false)) then return true end
-    return not sameSettings(editableSettings(draft,true),editableSettings(saved,true))
+    return false
 end
 function E.Begin()
     if not E.draft then E.draft = E.Normalize(EndCapperDB) end
 end
 function E.Commit()
+    if E.StopCapDrag then E.StopCapDrag() end
     EndCapperDB = E.Normalize(E.Config())
     if E.SavePositionProfile then E.SavePositionProfile() end
     E.draft = nil
 end
 function E.Cancel()
+    if E.StopCapDrag then E.StopCapDrag() end
     E.draft = nil
 end

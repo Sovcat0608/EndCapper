@@ -1,5 +1,6 @@
 // Lossless BLP2/BGRA encoding. The palette is reserved but unused (encoding 3).
-// Format cross-check: Pillow BlpImagePlugin and Kanma/BLPConverter blp_internal.h.
+// RAW3 requires the ARGB8888 upload hint (2), not DXT1 (0).
+// https://skarndev.github.io/wowlib/python/blp/#wowlib.formats.blp.PixelFormat
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -9,7 +10,7 @@ function buildBLP(bgra, width, height) {
   }
   const header=Buffer.alloc(1172), levels=[];
   header.write('BLP2');header.writeUInt32LE(1,4);
-  header[8]=3;header[9]=8;header[10]=0;header[11]=1;
+  header[8]=3;header[9]=8;header[10]=2;header[11]=1;
   header.writeUInt32LE(width,12);header.writeUInt32LE(height,16);
   // Keep unrounded, premultiplied values between reductions so tiny highlights
   // retain their coverage and transparent RGB cannot darken the filtered rings.

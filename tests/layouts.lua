@@ -1,4 +1,4 @@
-local E={caps={left={bottomOriginal={}},right={frameXOriginal={}}}}
+local E={}
 assert(loadfile('Model.lua'))('EndCapper',E)
 assert(loadfile('Layouts.lua'))('EndCapper',E)
 local oldAPI,oldEnum,oldGUID,oldPresets=C_EditMode,Enum,UnitGUID,EditModePresetLayoutManager
@@ -16,7 +16,6 @@ EndCapperDB=E.Normalize({left={art='wolf',x=13,y=24,size=120},right={art='wolf'}
     pair={linked=true,art='wolf',size=120,centerX=700,separation=600,x=15,y=24}})
 local allowed,changed=E.ReconcilePositionLayout();local raid=E.activePositionLayout
 assert(allowed and changed and raid and EndCapperDB.pair.separation==600)
-assert(not E.caps.left.bottomOriginal and not E.caps.right.frameXOriginal)
 E.Begin();E.draft.pair.separation=800;E.draft.pair.y=17;E.SyncPair(E.draft);E.Commit()
 assert(EndCapperDB.positionProfiles[raid].pair.separation==800)
 E.Begin();E.draft.pair.separation=1900
@@ -69,9 +68,9 @@ allowed=E.ReconcilePositionLayout();assert(allowed and E.activePositionLayout==s
 E.Cancel();C_EditMode.GetLayouts=function() return info end
 info.activeLayout=1;E.ReconcilePositionLayout();local modern=E.activePositionLayout
 assert(modern~=stable and modern:find('Modern',1,true))
-EndCapperDB.left.x=55;E.SavePositionProfile()
-info.activeLayout=2;E.ReconcilePositionLayout();assert(EndCapperDB.left.x==0)
-info.activeLayout=1;E.ReconcilePositionLayout();assert(EndCapperDB.left.x==55)
+EndCapperDB.left.x=55;EndCapperDB.otherMode.left.frameX=65;EndCapperDB.otherMode.enabled=true;E.SavePositionProfile()
+info.activeLayout=2;E.ReconcilePositionLayout();assert(EndCapperDB.left.x==0 and not EndCapperDB.otherMode.left.frameX)
+info.activeLayout=1;E.ReconcilePositionLayout();assert(EndCapperDB.left.x==55 and EndCapperDB.otherMode.left.frameX==65 and EndCapperDB.otherMode.enabled)
 assert(#info.layouts==3 and #EditModePresetLayoutManager.presetLayoutInfo==3,'native layout tables stay unchanged')
 -- Delayed first metadata must not throw away an already open preview.
 E.activePositionLayout=nil;E.positionLayoutKeys=nil

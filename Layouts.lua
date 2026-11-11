@@ -39,8 +39,14 @@ end
 function E.SavePositionProfile(key)
     key=key or E.activePositionLayout
     if not key or not EndCapperDB or E.positionLayoutUnavailable then return end
-    EndCapperDB.positionProfiles=EndCapperDB.positionProfiles or {}
-    EndCapperDB.positionProfiles[key]=E.CapturePosition(EndCapperDB)
+    for _,db in ipairs({EndCapperDB,EndCapperDB.otherMode}) do
+        db.positionProfiles[key]=E.CapturePosition(db)
+    end
+end
+
+local function defaultPosition(db)
+    if db.mode=="corner" then return E.NormalizePosition({}) end
+    return E.NormalizePosition({left={frameBottom=false},right={frameBottom=false}})
 end
 
 function E.ReconcilePositionLayout()
@@ -55,7 +61,6 @@ function E.ReconcilePositionLayout()
     if not key then E.positionLayoutUnavailable=true;return true,false end
     E.positionLayoutUnavailable=nil
     local previous=E.positionLayoutKeys
-    local profiles=EndCapperDB.positionProfiles
     local activeDeleted=false
     -- Names are the available stable identity; indices shift after deletion.
     -- Recognize an in-session rename only when exactly one key changed.
@@ -75,7 +80,10 @@ function E.ReconcilePositionLayout()
             local from,to=removed[1],added[1]
             if from==E.activePositionLayout then E.SavePositionProfile() end
             for _,db in ipairs(E.draft and {EndCapperDB,E.draft} or {EndCapperDB}) do
-                if db.positionProfiles[from] then db.positionProfiles[to]=db.positionProfiles[from];db.positionProfiles[from]=nil end
+                for _,mode in ipairs({db,db.otherMode}) do
+                    local records=mode.positionProfiles
+                    if records[from] then records[to]=records[from];records[from]=nil end
+                end
             end
             if from==E.activePositionLayout then E.activePositionLayout=to end
         end
@@ -88,8 +96,10 @@ function E.ReconcilePositionLayout()
         for i=previous.presetCount+1,#previous do
             local removed=previous[i]
             if not current[removed] then
-                profiles[removed]=nil
-                if E.draft then E.draft.positionProfiles[removed]=nil end
+                for _,db in ipairs(E.draft and {EndCapperDB,E.draft} or {EndCapperDB}) do
+                    db.positionProfiles[removed]=nil
+                    if db.otherMode then db.otherMode.positionProfiles[removed]=nil end
+                end
                 if removed==E.activePositionLayout then activeDeleted=true end
             end
         end
@@ -99,25 +109,21 @@ function E.ReconcilePositionLayout()
     end
     local old=E.activePositionLayout
     if old and not activeDeleted then E.SavePositionProfile(old) end
-    if old then E.draft=nil end
-    local profile=profiles[key]
-    if not profile then
-        local created=previous and count>#previous
-        if created then for _,existing in ipairs(previous) do if existing==key then created=false end end end
-        if (not old and next(profiles)==nil) or created then profile=E.CapturePosition(EndCapperDB)
-        else
-            -- Untouched layouts retain their own native frame anchors.
-            profile=E.NormalizePosition({left={frameBottom=false},right={frameBottom=false}})
+    if old then E.Cancel() end
+    local created=previous and count>#previous
+    if created then for _,existing in ipairs(previous) do if existing==key then created=false end end end
+    for _,db in ipairs({EndCapperDB,EndCapperDB.otherMode}) do
+        local profiles=db.positionProfiles
+        local profile=profiles[key]
+        if not profile then
+            if (not old and next(profiles)==nil) or created then profile=E.CapturePosition(db)
+            else profile=defaultPosition(db) end
+            profiles[key]=profile
         end
-        profiles[key]=profile
+        E.RestorePosition(db,profile)
     end
-    E.RestorePosition(EndCapperDB,profile)
     if E.CaptureNativePairSpacing then E.CaptureNativePairSpacing() end
     E.activePositionLayout=key;E.positionLayoutKeys=keys;E.positionLayoutIndex=index
-    -- A rollback snapshot belongs to the old native layout, never the new one.
-    for _,entry in pairs(E.caps or {}) do
-        entry.bottomOriginal=nil;entry.frameXOriginal=nil;entry.dragging=false
-    end
     E.switchingPositionLayout=true
     if old and E.panel then E.panel:Hide() end
     E.switchingPositionLayout=false

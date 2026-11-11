@@ -34,7 +34,58 @@ local function updateHiltEyeTrail(entry, config)
     trail.nativeActive = E.UpdateNativeSmoke(trail, E.GetEffectConfig(config, "coldFlame"))
 end
 
+local function updateWarlockShadow(entry, config)
+    local shadow=entry.warlockEffect
+    if not E.WarlockArtworks[config.art] or not entry.nativeWanted or not E.UpdateNativeSmoke then
+        if shadow then
+            shadow.effectsEnabled=false
+            shadow.nativeWanted=false
+            shadow.nativeActive=false
+            E.StopNativeSmoke(shadow)
+        end
+        return
+    end
+    if not shadow then
+        shadow={frame=entry.frame,art=entry.art}
+        entry.warlockEffect=shadow
+    end
+    shadow.side=entry.side
+    shadow.alpha=entry.alpha
+    shadow.effectsEnabled=true
+    shadow.nativeWanted=true
+    shadow.nativeActive=E.UpdateNativeSmoke(shadow,E.GetEffectConfig(config,"shadowGlow"))
+end
+
+local function updateUndercityEffects(entry, config)
+    local ids=E.UndercityEffects[config.art]
+    local wanted={}
+    if ids and entry.nativeWanted and E.UpdateNativeSmoke then
+        entry.undercityEffects=entry.undercityEffects or {}
+        for index,id in ipairs(ids) do
+            if index>1 then
+                wanted[id]=true
+                local effect=entry.undercityEffects[id] or {frame=entry.frame,art=entry.art}
+                entry.undercityEffects[id]=effect
+                effect.side=entry.side
+                effect.alpha=entry.alpha
+                effect.effectsEnabled=true
+                effect.nativeWanted=true
+                effect.nativeActive=E.UpdateNativeSmoke(effect,E.GetEffectConfig(config,id))
+            end
+        end
+    end
+    for id,effect in pairs(entry.undercityEffects or {}) do
+        if not wanted[id] then
+            effect.effectsEnabled=false
+            effect.nativeWanted=false
+            effect.nativeActive=false
+            E.StopNativeSmoke(effect)
+        end
+    end
+end
+
 local function stopCustomEffects(entry)
+    if E.StopLiquid then E.StopLiquid(entry) end
     if E.StopHalo then E.StopHalo(entry) end
     if E.StopMoonwell then E.StopMoonwell(entry) end
     if E.StopFrost then E.StopFrost(entry) end
@@ -47,6 +98,8 @@ function E.StopEffects(entry)
     if E.StopNativeSmoke then E.StopNativeSmoke(entry) end
     if entry.secondaryEffect and E.StopNativeSmoke then E.StopNativeSmoke(entry.secondaryEffect) end
     if entry.hiltEyeTrail and E.StopNativeSmoke then E.StopNativeSmoke(entry.hiltEyeTrail) end
+    if entry.warlockEffect and E.StopNativeSmoke then E.StopNativeSmoke(entry.warlockEffect) end
+    for _,effect in pairs(entry.undercityEffects or {}) do E.StopNativeSmoke(effect) end
 end
 local function stopUnusedNative(entry)
     if not E.StopNativeSmoke then return end
@@ -56,6 +109,7 @@ local function stopUnusedNative(entry)
 end
 function E.PlayEffects(entry)
     if not entry.effectsEnabled or not entry.frame:IsVisible() then return end
+    if E.PlayLiquid then E.PlayLiquid(entry) end
     if E.PlayHalo then E.PlayHalo(entry) end
     if E.PlayMoonwell then E.PlayMoonwell(entry) end
     if E.PlayFrost then E.PlayFrost(entry) end
@@ -65,6 +119,8 @@ function E.PlayEffects(entry)
     if E.PlayNativeSmoke then E.PlayNativeSmoke(entry) end
     if entry.secondaryEffect and E.PlayNativeSmoke then E.PlayNativeSmoke(entry.secondaryEffect) end
     if entry.hiltEyeTrail and E.PlayNativeSmoke then E.PlayNativeSmoke(entry.hiltEyeTrail) end
+    if entry.warlockEffect and E.PlayNativeSmoke then E.PlayNativeSmoke(entry.warlockEffect) end
+    for _,effect in pairs(entry.undercityEffects or {}) do E.PlayNativeSmoke(effect) end
 end
 function E.UpdateEffects(entry, config)
     -- Called only through the out-of-combat Apply path.
@@ -86,13 +142,16 @@ function E.UpdateEffects(entry, config)
     entry.nativeWanted = entry.effectsEnabled and config.nativeSmoke ~= false
     entry.nativeActive = false
     updateHiltEyeTrail(entry, config)
+    updateWarlockShadow(entry, config)
+    updateUndercityEffects(entry, config)
+    if E.UpdateLiquid then E.UpdateLiquid(entry, config) end
     if E.UpdateGlyphs then E.UpdateGlyphs(entry, config) end
     if E.UpdateArcane then E.UpdateArcane(entry, config) end
     if E.UpdateMolten then E.UpdateMolten(entry, config) end
     if E.UpdateFrost then E.UpdateFrost(entry, config) end
     if E.UpdateMoonwell then E.UpdateMoonwell(entry, config) end
     if E.UpdateHalo then E.UpdateHalo(entry,config) end
-    for _,key in ipairs({"glyphs","molten","frost","moonwell","halo"}) do
+    for _,key in ipairs({"glyphs","molten","frost","moonwell","halo","liquid"}) do
         local state=entry[key]
         if state and state.enabled then
             E.ClipEffect(entry,config,state.host,level+(key=="halo" and 1 or 3))
@@ -104,10 +163,19 @@ function E.UpdateEffects(entry, config)
         E.PlayEffects(entry);return
     end
     if not entry.effectsEnabled then stopUnusedNative(entry);return end
+    if E.UndercityEffects[config.art] then
+        if E.UpdateNativeSmoke then
+            entry.nativeActive=E.UpdateNativeSmoke(entry,E.GetEffectConfig(config,"greenGroundFog"))
+        end
+        stopUnusedNative(entry)
+        E.PlayEffects(entry)
+        return
+    end
     -- Keep the three hilt models on dedicated scenes as the editor changes selection.
     local primaryConfig = config.art=="frostmourneHilt" and E.GetEffectConfig(config,"frostGlow") or config
+    if E.WarlockArtworks[config.art] then primaryConfig=E.GetEffectConfig(config,"felFlame") end
     if E.UpdateNativeSmoke then entry.nativeActive = E.UpdateNativeSmoke(entry, primaryConfig) end
-    if (E.FrostmourneArtworks[config.art] or E.WorgenArtworks[config.art] or E.UndeadArtworks[config.art] or E.PriestEffectPairs[config.art] or config.art=="kirinTor" or config.art=="moonwell" or config.art=="stormhornTotem" or config.art=="felwing" or E.MoltenArtworks[config.art] or E.FrostArtworks[config.art]) and E.UpdateNativeSmoke then
+    if (E.WarlockArtworks[config.art] or E.FrostmourneArtworks[config.art] or E.WorgenArtworks[config.art] or E.UndeadArtworks[config.art] or E.PriestEffectPairs[config.art] or config.art=="kirinTor" or config.art=="moonwell" or config.art=="stormhornTotem" or config.art=="felwing" or E.MoltenArtworks[config.art] or E.FrostArtworks[config.art]) and E.UpdateNativeSmoke then
         -- Two independently layered scenes, pooled per cap. The dev radio only
         -- selects which calibration to edit; both effects remain visible.
         local secondary=entry.secondaryEffect or {frame=entry.frame,art=entry.art}
@@ -117,6 +185,7 @@ function E.UpdateEffects(entry, config)
         secondary.effectsEnabled=entry.effectsEnabled
         secondary.nativeWanted=entry.nativeWanted
         local other=config.nativeEffect=="blueGlow" and "broadFlame" or "blueGlow"
+        if E.WarlockArtworks[config.art] then other="felMagic" end
         if E.FrostmourneArtworks[config.art] then other=primaryConfig.nativeEffect=="frostGlow" and "frostMist" or "frostGlow" end
         if E.UndeadArtworks[config.art] then other=config.nativeEffect=="amberFlow" and "rotFog" or "amberFlow" end
         if E.WorgenArtworks[config.art] then

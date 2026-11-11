@@ -17,11 +17,19 @@ local function advance(seconds)
     end
     error('refresh did not settle')
 end
+UIParent={GetEffectiveScale=function() return 1 end,GetLeft=function() return 0 end,GetBottom=function() return 0 end,
+    GetWidth=function() return 1920 end,GetHeight=function() return 1080 end,IsVisible=function() return true end}
 local function surface()
     local s={shown=true,alpha=1,width=154,height=95,level=10,scripts={},uv={0,0,0,1,1,0,1,1}}
     function s:Show() if not self.shown then self.shows=(self.shows or 0)+1 end;self.shown=true end
     function s:Hide() if self.shown then self.hides=(self.hides or 0)+1 end;self.shown=false end
-    function s:IsVisible() return self.shown end
+    function s:IsVisible() return self.shown and (not self.parent or self.parent:IsVisible()) end
+    function s:SetShown(shown) if shown then self:Show() else self:Hide() end end
+    function s:GetEffectiveScale() return 1 end
+    function s:GetCenter() return 300,120 end
+    function s:GetHeight() return self.height end
+    function s:GetWidth() return self.width end
+    for _,name in ipairs({"SetFrameStrata","SetBackdrop","SetBackdropBorderColor","RegisterForDrag","SetNormalTexture","SetHighlightTexture"}) do s[name]=function() end end
     function s:SetAlpha(v) self.alpha=v end
     function s:GetAlpha() return self.alpha end
     function s:SetSize(w,h) self.width,self.height=w,h end
@@ -144,8 +152,16 @@ updates.left=0;updates.right=0;E.Schedule('left');E.Schedule();advance(0)
 assert(updates.left==1 and updates.right==1,'global refresh includes both caps')
 updates.left=0;updates.right=0;right.native:SetAlpha(0.6);advance(0)
 assert(updates.left==0 and updates.right==1 and right.alpha==0.6,'native alpha hook belongs to one cap')
-updates.left=0;updates.right=0;left.frame.scripts.OnSizeChanged(left.frame);advance(0)
-assert(updates.left==1 and updates.right==0,'size hook belongs to one cap')
+updates.left=0;updates.right=0
+local moving=0
+GetCursorPosition=function() return moving,0 end
+E.panel={IsShown=function() return true end}
+E.UpdateDragHandles()
+local beforeDrag=snapshot(left)
+left.handle.scripts.OnDragStart();moving=30;left.handle.scripts.OnUpdate();left.handle.scripts.OnDragStop();advance(0)
+assert(E.draft.left.frameX==330 and left.frame.point[4]==330)
+assert(updates.left==0 and updates.right==0 and snapshot(left)==beforeDrag,'drag translates the effects with their parent')
+E.panel=nil
 
 -- Commit/Cancel affect both drafts, while actual disable/hide still stops models.
 mode='ready';E.Commit();E.Begin();E.SelectArtwork(E.draft.left,'hidden','left');E.Apply('left')
@@ -200,7 +216,8 @@ print('PASS: dual Sanctum overlap opt-in before load, all four scenes retained a
 E.Cancel();EndCapperDB=E.Normalize({left={art='seraph'},right={art='wolf'}});E.Begin()
 E.LinkPair(E.draft,'left',true);E.draft.pair.size=130;E.draft.pair.x=20;E.draft.pair.y=-12;E.draft.pair.separation=100;E.SyncPair(E.draft)
 E.Apply();advance(0)
-assert(left.art.point[4]==0 and right.art.point[4]==0 and left.art.point[5]==-12 and right.art.point[5]==-12)
+assert(left.art.point[4]==0 and right.art.point[4]==0 and left.art.point[5]==-12+left.art.height*(E.EffectBaselines.seraph-1) and
+    right.art.point[5]==-12+right.art.height*(E.EffectBaselines.sanctum-1))
 assert(left.art.width==292.5 and right.art.width==292.5)
 local beforeLeft,beforeRight=transitions(left),transitions(right)
 for _=1,4 do E.Commit();E.Begin();E.Apply();advance(0) end
@@ -213,3 +230,92 @@ assert(E.pending and left.art.point[4]==0 and right.art.point[4]==0)
 combat=false;E.Apply();advance(0);assert(left.art.point[4]==0 and right.art.point[4]==0)
 E.Cancel();E.Apply();advance(0);assert(left.art.point[4]==0 and right.art.point[4]==0)
 print('PASS: linked settings render both sides with separation, paired native effects, stable repeated Apply, swap, combat deferral and Cancel')
+
+E.Cancel()
+EndCapperDB=E.Normalize({left={art="sanctum"},right={art="sanctum"}})
+E.Apply();advance(0);E.Begin();E.SelectMode(E.draft,"corner")
+E.draft.enabled=true;E.Apply(nil,"corner");advance(0)
+local cornerLeft,cornerRight=E.cornerCaps.left,E.cornerCaps.right
+for _,cap in ipairs({left,right,cornerLeft,cornerRight}) do
+    assert(cap.nativeSmoke.slots[1].scene.shown and cap.secondaryEffect.nativeSmoke.slots[1].scene.shown)
+end
+assert(left.nativeSmoke~=cornerLeft.nativeSmoke and right.nativeSmoke~=cornerRight.nativeSmoke)
+local endEffect,cornerEffect=snapshot(left),snapshot(cornerRight)
+E.draft.left.x=20;E.Apply("left","corner");advance(0)
+assert(snapshot(left)==endEffect and snapshot(cornerRight)==cornerEffect)
+E.draft.enabled=false;E.Apply(nil,"corner");advance(0)
+assert(not cornerLeft.nativeSmoke.slots[1].scene.shown and left.nativeSmoke.slots[1].scene.shown)
+E.Cancel();E.Apply();advance(0)
+print("PASS: both enabled modes have independent native effects and per-mode previews")
+
+EndCapperDB=E.Normalize({left={art='hexbound'},right={art='soulbound'}})
+E.Begin();E.Apply();advance(0);E.devMode=true
+for _,side in ipairs({'left','right'}) do
+    local cap=E.caps[side]
+    local states={cap.nativeSmoke,cap.secondaryEffect.nativeSmoke,cap.warlockEffect.nativeSmoke}
+    local ids={166003,166072,166009}
+    for _,id in ipairs({'felFlame','felMagic','shadowGlow'}) do
+        E.SelectEffect(E.draft[side],id)
+        E.SetDevEffect(E.draft[side],'trailOpacity',25)
+        E.Apply(side,'end');advance(0)
+        for i,state in ipairs(states) do
+            assert(state.slots[1].scene.shown and state.slots[1].actor.id==ids[i])
+            if side=='right' then
+                assert(state.slots[1].scene:GetFrameLevel()==cap.frame:GetFrameLevel()+(i==2 and 1 or 4),
+                    'Soulbound glow/flame stay above the crystal; baked Fel Casting stays behind')
+            end
+        end
+        assert(cap.nativeSmoke==states[1] and cap.secondaryEffect.nativeSmoke==states[2] and cap.warlockEffect.nativeSmoke==states[3])
+    end
+end
+E.SelectMode(E.draft,'corner');E.draft.enabled=true;E.Apply();advance(0)
+for _,cap in ipairs({left,right,E.cornerCaps.left,E.cornerCaps.right}) do
+    assert(cap.nativeSmoke.slots[1].scene.shown and cap.secondaryEffect.nativeSmoke.slots[1].scene.shown and cap.warlockEffect.nativeSmoke.slots[1].scene.shown)
+end
+E.SelectArtwork(E.draft.left,'violetSpire','left');E.Apply('left','corner');advance(0)
+assert(not E.cornerCaps.left.warlockEffect.nativeSmoke.slots[1].scene.shown)
+assert(right.warlockEffect.nativeSmoke.slots[1].scene.shown)
+E.Cancel();E.Apply();advance(0)
+print('PASS: three independently calibrated warlock models persist through radio selection, coexist across modes and stop on art changes')
+
+EndCapperDB=E.Normalize({version=40,left={art='cryptgate'},right={art='plaguewell'}})
+E.Begin();E.Apply();advance(0)
+local crypt=E.caps.left
+local extras=crypt.undercityEffects
+local eyeA,eyeB=extras.amberEyeLeft.nativeSmoke,extras.amberEyeRight.nativeSmoke
+assert(eyeA~=eyeB and eyeA.slots[1].scene~=eyeB.slots[1].scene)
+assert(crypt.nativeSmoke.slots[1].actor.id==166280 and E.caps.right.nativeSmoke.slots[1].actor.id==166280)
+assert(extras.eerieGroundFog.nativeSmoke.slots[1].actor.id==165743)
+assert(extras.candleFlame.nativeSmoke.slots[1].actor.id==1958358)
+assert(eyeA.slots[1].actor.id==166033 and eyeB.slots[1].actor.id==166033)
+local lamp=E.caps.right.undercityEffects.lampGlow.nativeSmoke
+assert(lamp.slots[1].actor.id==166034 and lamp.slots[1].scene.shown)
+local lampCalls=lamp.slots[1].actor.modelCalls
+for _,id in ipairs(E.UndercityEffects.plaguewell) do
+    E.SelectEffect(E.draft.right,id);E.Apply('right');advance(0)
+    assert(lamp.slots[1].scene.shown and lamp.slots[1].actor.modelCalls==lampCalls)
+end
+local rightSnapshot=snapshot(E.caps.right)
+local bCalls=eyeB.slots[1].actor.modelCalls
+for _,id in ipairs(E.UndercityEffects.cryptgate) do
+    E.SelectEffect(E.draft.left,id);E.Apply('left');advance(0)
+    assert(crypt.nativeSmoke.slots[1].scene.shown)
+    for _,extra in pairs(extras) do assert(extra.nativeSmoke.slots[1].scene.shown) end
+end
+E.SelectEffect(E.draft.left,'amberEyeLeft');E.SetDevEffect(E.draft.left,'trailOpacity',0);E.Apply('left');advance(0)
+assert(eyeA.slots[1].scene.alpha==0 and eyeB.slots[1].scene.alpha>0)
+assert(eyeB.slots[1].actor.modelCalls==bCalls and snapshot(E.caps.right)==rightSnapshot)
+E.SelectMode(E.draft,'corner');E.draft.enabled=true;E.Apply();advance(0)
+assert(E.cornerCaps.left.undercityEffects.amberEyeLeft.nativeSmoke~=eyeA)
+E.SelectArtwork(E.draft.left,'plaguewell','left');E.Apply('left','corner');advance(0)
+assert(not E.cornerCaps.left.undercityEffects.amberEyeLeft.nativeSmoke.slots[1].scene.shown)
+assert(E.cornerCaps.left.undercityEffects.eerieGroundFog.nativeSmoke.slots[1].scene.shown)
+assert(E.cornerCaps.left.undercityEffects.lampGlow.nativeSmoke.slots[1].scene.shown)
+assert(E.cornerCaps.left.undercityEffects.lampGlow.nativeSmoke~=lamp)
+E.SelectArtwork(E.draft.left,'hexbound','left');E.Apply('left','corner');advance(0)
+for _,extra in pairs(E.cornerCaps.left.undercityEffects) do assert(not extra.nativeSmoke.slots[1].scene.shown) end
+E.SelectMode(E.draft,'end');E.SelectArtwork(E.draft.left,'hidden','left');E.Apply('left');advance(0)
+for _,extra in pairs(extras) do assert(not extra.nativeSmoke.slots[1].scene.shown) end
+E.Cancel();E.Apply();advance(0)
+assert(eyeA.slots[1].scene.shown and eyeB.slots[1].scene.shown)
+print('PASS: Undercity dedicated eye scenes, simultaneous native models, opacity isolation, radio reuse, side/mode isolation, hide/art-change cleanup and Cancel')

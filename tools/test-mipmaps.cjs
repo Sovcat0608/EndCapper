@@ -4,15 +4,16 @@ const {buildBLP}=require('./Build-HaloMipmaps.cjs');
 // One opaque red texel + three transparent blue texels must reduce to 25%
 // red coverage, without bleeding the invisible blue into the visible ring.
 const sample=buildBLP(Buffer.from([0,0,255,255,255,0,0,0,255,0,0,0,255,0,0,0]),2,2);
+assert.deepEqual([...sample.subarray(8,12)],[3,8,2,1], 'Raw BGRA must request ARGB8888 upload, not DXT1');
 assert.deepEqual([...sample.subarray(sample.readUInt32LE(24))],[0,0,255,64]);
 assert.throws(()=>buildBLP(Buffer.alloc(3*2*4),3,2),/power-of-two/);
 const external=JSON.parse(fs.readFileSync('tools/external-media.json','utf8'));
-for(const [name,width] of [['SeraphHalo',512],['UmbraHalo',512],['ArcaneCrystal',256],['ArcaneSigil',256]]) {
+for(const [name,width] of [['SeraphHalo',512],['UmbraHalo',512],['ArcaneCrystal',256],['ArcaneSigil',256],['SoulboundCrystal',256],['SoulboundCrystalEmission',256]]) {
   const mipCount=Math.log2(width)+1;
   const rel=`Media/${name}.blp`,file=fs.existsSync(rel)?rel:external[rel],b=fs.readFileSync(file);
   assert.equal(b.toString('ascii',0,4),'BLP2');
   assert.equal(b.readUInt32LE(4),1);
-  assert.deepEqual([...b.subarray(8,12)],[3,8,0,1]);
+  assert.deepEqual([...b.subarray(8,12)],[3,8,2,1]);
   assert.equal(b.readUInt32LE(12),width);assert.equal(b.readUInt32LE(16),width);
   let end=1172,baseAlpha=0;
   const top=b.readUInt32LE(20);

@@ -2,6 +2,8 @@ local _, E = ...
 -- Visible basal edges measured in the runtime textures, top to bottom.
 -- These are horizontal cutoffs, not masks of the full artwork silhouette.
 E.EffectBaselines = {
+    cryptgate=506/512, plaguewell=505/512,
+    hexbound=461/512, soulbound=473/512,
     frostmourneHilt=467/512, frostmourneBlade=467/512,
     skull=498/512, lordaeron=498/512, wolf=496/512, whiteWorgen=492/512,
     moonbough=475/512, verdantRoot=464/512, lunarRelic=491/512,

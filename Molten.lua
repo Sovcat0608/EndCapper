@@ -22,7 +22,7 @@ function E.PlayMolten(entry)
     for _,layer in ipairs(s.layers) do layer.group:Play(false,(s.elapsed-layer.lag)%period) end
 end
 function E.UpdateMolten(entry,config)
-    local name=E.MoltenArtworks[config.art]
+    local name=E.MoltenArtworks[config.art] or E.WarlockArtworks[config.art]
     local s=entry.molten
     if not name or config.effects==false then
         if s then s.enabled=false; E.StopMolten(entry) end

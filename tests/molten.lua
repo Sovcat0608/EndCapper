@@ -90,3 +90,12 @@ assert(not s.enabled and not s.host.shown and not s.layers[1].group.playing and 
 local other=entry();E.UpdateEffects(other,c);assert(#hosts==2 and other.molten~=s)
 c.effects=false;E.UpdateEffects(other,c);assert(not other.molten.host.shown)
 print('PASS: molten native Alpha/core-bloom timing, registration, flip/resize, independent native calibration, hide/resume, pooled art swap and cleanup')
+for art,name in pairs(E.WarlockArtworks) do
+    local config=E.NormalizeSide({art=art,flip=true},'left')
+    E.UpdateEffects(e,config)
+    assert(e.molten==s and s.host.shown and s.layers[2].group.playing)
+    assert(s.layers[2].texture.path:find(name..'Emission.tga',1,true))
+    assert(s.layers[1].texture.path:find(name..'Bloom.tga',1,true))
+    assert(s.layers[2].texture.uv[1]==1 and s.layers[2].texture.width==450)
+end
+print('PASS: both warlock green emissions use registered native core/bloom Alpha pulses')

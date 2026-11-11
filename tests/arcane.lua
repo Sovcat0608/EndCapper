@@ -54,6 +54,7 @@ function CreateFrame(kind,_,parent)
     assert(kind=='Frame');local h=surface();h.parent=parent;hosts[#hosts+1]=h;return h
 end
 E.UpdateNativeSmoke=function(e,c) e.nativeConfig=c;return false end
+E.StopNativeSmoke=function(e) e.nativeStopped=true end
 local function entry()
     return {alpha=0.6,art={GetSize=function() return 225,150 end},frame={scripts={},
         GetFrameLevel=function() return 10 end,IsVisible=function(self) return not self.hidden end,
@@ -130,4 +131,26 @@ local optional=entry();E.UpdateEffects(optional,E.NormalizeSide({art='violetSpir
 assert(optional.arcane.motionGroup.playing and optional.arcane.rotationGroup.playing)
 assert(optional.arcane.emission.filter=='TRILINEAR')
 print('PASS: native arcane Translation/Alpha/Rotation, shared shard-emission motion, fixed seal, no OnUpdate, phase/resume, pooling and tuning isolation')
+
+-- The same pooled host changes to a separate hovering soul shard, with no seal.
+local soul=E.NormalizeSide({art='soulbound',flip=false},'right')
+E.UpdateEffects(e,soul)
+assert(e.arcane==s and s.host.shown and s.motionGroup.playing and s.pulseGroup.playing)
+assert(not s.rotationGroup.playing and not s.sigil.shown)
+assert(s.crystal.path:find('SoulboundCrystal.blp',1,true))
+assert(s.emission.path:find('SoulboundCrystalEmission.blp',1,true))
+assert(s.crystal.point[5]==s.emission.point[5] and s.crystal.height==s.emission.height)
+assert(s.host.point[4]==450*0.30 and s.host.point[5]==-300*0.175)
+assert(s.crystal.width==300*0.44 and s.crystal.height==300*0.32)
+E.devMode=true
+E.SelectEffect(soul,'shadowGlow');E.SetDevEffect(soul,'trailY',140)
+E.UpdateEffects(e,E.GetEffectConfig(soul))
+assert(s.host.point[5]==-300*0.175,'native effect tuning must not move the shard')
+soul.flip=true;E.UpdateEffects(e,E.GetEffectConfig(soul))
+assert(s.host.point[4]==450*0.70 and s.crystal.uv[1]==1)
+E.UpdateEffects(e,E.NormalizeSide({art='violetSpire'},'right'))
+assert(s.sigil.shown and s.rotationGroup.playing and s.crystal.path:find('ArcaneCrystal.blp',1,true))
+E.UpdateEffects(e,E.NormalizeSide({art='hexbound'},'left'))
+assert(not s.host.shown and not s.motionGroup.playing and not s.pulseGroup.playing)
+print('PASS: Soulbound shard uses shared native hover and emission motion, mirrored registration, independent tuning and clean art transitions')
 

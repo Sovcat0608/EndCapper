@@ -140,7 +140,7 @@ for _,art in ipairs(E.artworks) do
                 local c=E.GetEffectConfig(E.NormalizeSide({art=art.id,flip=mirror},"left"))
                 E.UpdateEffects(e,c)
                 local primary=e.nativeSmoke.slots[1].scene
-                checkNative(e,c,primary,10+(c.effectLayer=="back" and 1 or art.id=="violetSpire" and 4 or 3))
+                checkNative(e,c,primary,10+(c.effectLayer=="back" and 1 or (art.id=="violetSpire" or art.id=="soulbound") and 4 or 3))
                 -- Width stays fixed; the physical height stops at the baseline.
                 local expected=288*(e.art.width/150)*c.trailSize/100
                 assert(math.abs(primary.width-expected)<.00001 and primary.height<=primary.width)

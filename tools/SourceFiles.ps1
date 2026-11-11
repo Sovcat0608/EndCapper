@@ -1,13 +1,18 @@
 # Player-only allowlist shared by packaging and installation.
 function Get-EndCapperRuntimeFiles {
-    @('EndCapper.toc', 'Model.lua', 'Layouts.lua', 'Clipping.lua', 'NativeSmoke.xml', 'NativeSmoke.lua', 'Glyphs.lua', 'Arcane.lua', 'Molten.lua', 'Frost.lua', 'Moonwell.lua', 'Halos.lua', 'Effects.lua', 'Core.lua', 'Options.lua')
+    @('EndCapper.toc', 'Model.lua', 'Layouts.lua', 'Clipping.lua', 'NativeSmoke.xml', 'NativeSmoke.lua', 'Glyphs.lua', 'Liquid.lua', 'Arcane.lua', 'Molten.lua', 'Frost.lua', 'Moonwell.lua', 'Halos.lua', 'Effects.lua', 'Core.lua', 'Options.lua')
 }
 
 function Get-EndCapperPackageFiles {
     $files = (Get-EndCapperRuntimeFiles) + @('README.md', 'LICENSE', 'CHANGELOG.md')
     foreach($name in @('Seraph','Sanctum','Umbra','Eclipse')) {$files += "Media/$name.tga"}
     foreach($name in @('Undead','Lordaeron')) {$files += "Media/$name.tga"}
-    $files += 'Media/KirinTor.tga'
+    $files += @('Media/KirinTor.tga','Media/EcapLogo.tga')
+    $files += @('Media/Cryptgate.tga','Media/Plaguewell.tga','Media/CryptgateLiquidAtlas.tga','Media/PlaguewellLiquidAtlas.tga')
+    foreach($name in @('Hexbound','Soulbound')) {
+        foreach($suffix in @('','Emission','Bloom')) {$files += "Media/$name$suffix.tga"}
+    }
+    $files += @('Media/SoulboundCrystal.blp','Media/SoulboundCrystalEmission.blp')
     foreach($name in @('FrostmourneHilt','FrostmourneBlade','FrostmourneHiltIce','FrostmourneBladeIce')) {$files += "Media/$name.tga"}
     foreach($name in @('WorgenBlack','WorgenWhite')) {$files += "Media/$name.tga"}
     foreach($name in @('SeraphHalo','UmbraHalo','ArcaneCrystal','ArcaneSigil')) {$files += "Media/$name.blp"}

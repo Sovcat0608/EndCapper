@@ -2,7 +2,7 @@
 ## Title: EndCapper
 ## Notes: Curated action-bar artwork with independent end-cap placement and mirroring.
 ## Author: EndCapper
-## Version: 1.4.0-rc.19
+## Version: 1.4.0
 ## SavedVariables: EndCapperDB
 ## OptionalDeps: Blizzard_ActionBar, Blizzard_EditMode
 
@@ -12,6 +12,7 @@ Clipping.lua
 NativeSmoke.xml
 NativeSmoke.lua
 Glyphs.lua
+Liquid.lua
 Arcane.lua
 Molten.lua
 Frost.lua

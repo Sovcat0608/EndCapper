@@ -10,7 +10,7 @@ local effects = E.NormalizeSide({nativeEffect='external.m2',trailSize=999,trailA
 assert(effects.nativeEffect=='amberFlow' and effects.trailSize==89 and effects.trailAngle==107)
 assert(effects.trailX==-30 and effects.trailY==-1, 'top-level legacy tuning cannot override artwork defaults')
 local migrated = E.Normalize({version=1,left={trailX=9,trailY=-4,nativeEffect='soulfrost',trailSize=75,x=8},right={trailX=10}})
-assert(migrated.version==34 and migrated.left.trailX==-30 and migrated.left.trailY==-1 and migrated.right.trailX==-30)
+assert(migrated.version==41 and migrated.left.trailX==-30 and migrated.left.trailY==-1 and migrated.right.trailX==-30)
 assert(migrated.left.nativeEffect=='amberFlow' and migrated.left.trailSize==89 and migrated.left.x==8)
 migrated.left.trailX=17; migrated.left.trailY=31
 local again=E.Normalize(migrated)
@@ -181,7 +181,7 @@ print('PASS: radio selection whitelist, schema-5 migration, per-effect/per-art t
 local retired=E.Normalize({version=6,left={art='verdantRoot',x=17,y=-9,devEffects={verdantRoot={
     selectedEffect='moonbeam',trailX=41,trailY=-12,trailOpacity=39,
     moonbeam={trailX=150,trailY=150,trailSize=200,trailOpacity=1}}}}})
-assert(retired.version==34 and retired.left.nativeEffect=='faerieFire')
+assert(retired.version==41 and retired.left.nativeEffect=='faerieFire')
 assert(retired.left.trailX==0 and retired.left.trailY==0 and retired.left.trailOpacity==65)
 assert(not retired.left.devEffects.verdantRoot.moonbeam and retired.left.x==17 and retired.left.y==-9)
 E.devMode=true; E.SelectEffect(retired.left,'moonlight')
@@ -203,7 +203,7 @@ end
 E.devMode=false
 print('PASS: schema-6 Moonbeam retirement, saved offsets, baked right/unflipped druid defaults and Reset on both caps')
 local totem=E.Normalize({version=7,left={art='stormhornTotem'},right={art='lunarRelic',devEffects={lunarRelic={trailX=-29}}}})
-assert(totem.version==34 and totem.left.nativeEffect=='blueGlow' and not totem.left.moonlight)
+assert(totem.version==41 and totem.left.nativeEffect=='blueGlow' and not totem.left.moonlight)
 assert(totem.left.trailX==43 and totem.left.trailY==9 and totem.left.trailAngle==90)
 assert(not E.CanSelectEffect('stormhornTotem','faerieFire'))
 EndCapperDB=totem; E.Begin(); E.devMode=true
@@ -233,7 +233,7 @@ print('PASS: independent blue/broadFlame calibration, selection/save/reset/Cance
 for _,oldID in ipairs({'shamanWind','radiantSparks'}) do
     local migrated=E.Normalize({version=9,left={art='stormhornTotem',size=130,x=14,y=-5,flip=false,devEffects={stormhornTotem={
         selectedEffect=oldID,trailX=-90,trailOpacity=12,radiantSparks={trailSize=200,trailOpacity=1}}}},right={art='lunarRelic'}})
-    assert(migrated.version==34 and migrated.left.nativeEffect=='blueGlow')
+    assert(migrated.version==41 and migrated.left.nativeEffect=='blueGlow')
     assert(migrated.left.trailX==43 and migrated.left.trailOpacity==100 and not migrated.left.devEffects.stormhornTotem.radiantSparks)
     assert(migrated.left.size==130 and migrated.left.x==14 and migrated.left.y==-5 and not migrated.left.flip)
     assert(migrated.right.nativeEffect=='moonlight' and migrated.right.trailX==-44)
@@ -269,7 +269,7 @@ end
 E.devMode=false
 print('PASS: both baked Stormhorn profiles, per-effect default layers, explicit overrides and Reset on either side')
 EndCapperDB=E.Normalize({version=11,left={art='felwing'},right={art='stormhornTotem',devEffects={stormhornTotem={selectedEffect='blueGlow',trailX=43}}}})
-assert(EndCapperDB.version==34 and EndCapperDB.left.nativeEffect=='felDrip')
+assert(EndCapperDB.version==41 and EndCapperDB.left.nativeEffect=='felDrip')
 assert(EndCapperDB.left.trailX==67 and EndCapperDB.left.trailY==-2 and EndCapperDB.left.trailAngle==90)
 assert(E.artworkByID.felwing.width==225 and E.artworkByID.felwing.height==150)
 E.Begin(); E.devMode=true
@@ -329,7 +329,7 @@ for _,art in ipairs({'cinderforged','cindermaw'}) do
     assert(E.GetEffectConfig(EndCapperDB.left).trailOpacity==(art=='cinderforged' and 30 or 35))
     E.Begin();E.SetDevEffect(E.draft.left,'trailOpacity',51);E.Commit()
     local saved=E.Normalize(EndCapperDB)
-    assert(saved.version==34 and saved.left.trailX==-80 and saved.left.trailOpacity==51 and saved.left.effectLayer=='back')
+    assert(saved.version==41 and saved.left.trailX==-80 and saved.left.trailOpacity==51 and saved.left.effectLayer=='back')
     assert(saved.right.art=='wolf' and saved.right.x==12 and E.GetEffectConfig(saved.left,'fireGlow').trailX==25)
     E.ResetDevEffect(saved.left)
     assert(E.GetEffectConfig(saved.left).trailX==(art=='cinderforged' and -43 or -28) and E.GetEffectConfig(saved.left,'fireGlow').trailX==25)
@@ -369,7 +369,7 @@ for _,art in ipairs({'rimeforged','rimeguard'}) do
     assert(E.GetEffectConfig(EndCapperDB.left).trailOpacity==(art=='rimeforged' and 5 or 8))
     E.Begin();E.SetDevEffect(E.draft.left,'trailOpacity',51);E.Commit()
     local saved=E.Normalize(EndCapperDB)
-    assert(saved.version==34 and saved.left.trailX==-90 and saved.left.trailOpacity==51 and saved.left.effectLayer=='back')
+    assert(saved.version==41 and saved.left.trailX==-90 and saved.left.trailOpacity==51 and saved.left.effectLayer=='back')
     assert(saved.right.art=='cindermaw' and saved.right.x==16 and saved.right.size==115 and E.GetEffectConfig(saved.left,'coldFlame').trailX==27)
     E.ResetDevEffect(saved.left)
     assert(E.GetEffectConfig(saved.left).trailX==(art=='rimeforged' and -39 or -30) and E.GetEffectConfig(saved.left,'coldFlame').trailX==27)
@@ -400,7 +400,7 @@ for art,effects in pairs(approvedFrost) do
 end
 print('PASS: approved frost defaults/reset on both caps, all native effects enabled, overrides retained, personal placement excluded')
 local well=E.Normalize({version=17,left={art='verdantRoot',x=37},right={art='moonwell'}})
-assert(well.version==34 and well.left.art=='verdantRoot' and well.left.x==37 and well.right.art=='moonwell')
+assert(well.version==41 and well.left.art=='verdantRoot' and well.left.x==37 and well.right.art=='moonwell')
 assert(E.DefaultMirror('moonwell','left') and not E.DefaultMirror('moonwell','right'))
 E.devMode=true;E.SelectEffect(well.right,'waterRipple');E.SetDevEffect(well.right,'trailX',45);E.SetEffectLayer(well.right,'back')
 local saved=E.Normalize(well)
@@ -428,7 +428,7 @@ for _,side in ipairs({'left','right'}) do
 end
 print('PASS: baked Moonwell defaults and Reset on both caps, saved overrides and personal placement retained')
 local priest=E.Normalize({version=18,left={art='seraph',size=115,x=21,y=-19},right={art='umbra'}})
-assert(priest.version==34 and priest.left.flip and not priest.right.flip and priest.left.nativeEffect=='holyGlow')
+assert(priest.version==41 and priest.left.flip and not priest.right.flip and priest.left.nativeEffect=='holyGlow')
 E.devMode=false;E.SetHalo(priest.left,'size',175);assert(E.GetHaloConfig(priest.left).size==125)
 E.devMode=true;E.SetHalo(priest.left,'size',175);E.SetHalo(priest.left,'period',64);E.SetHalo(priest.left,'reverse',true)
 E.SetHalo(priest.right,'x',43)
@@ -456,7 +456,7 @@ for _,spec in ipairs({{'seraph','holyGlow','sunRays'},{'umbra','voidGlow','voidS
         local art,glow,other=unpack(spec)
         local prior={version=19,[side]={art=art,size=115,x=21,y=-19,halos={[art]={size=172,x=15,y=-7,opacity=47,period=63,reverse=true}}}}
         local db=E.Normalize(prior);local c=db[side]
-        assert(db.version==34 and c.nativeEffect==glow and c.nativeSmoke)
+        assert(db.version==41 and c.nativeEffect==glow and c.nativeSmoke)
         assert(E.GetHaloConfig(c).period==63 and E.GetHaloConfig(c).reverse and c.size==115 and c.x==21)
         E.devMode=false;E.SelectEffect(c,other);E.SetDevEffect(c,'trailOpacity',0)
         assert(E.SelectedEffect(c)==glow and E.GetEffectConfig(c,glow).trailOpacity==(art=='seraph' and 11 or 30))
@@ -548,7 +548,7 @@ for _,pair in ipairs({{'seraph','sanctum','holyGlow','sunRays'},{'umbra','eclips
         -- Upgrade the old static sister record, including its resolved disabled flag.
         local db=E.Normalize({version=20,[side]={art=sister,nativeSmoke=false,nativeOnly=true,size=120,x=21,y=-19}})
         local c=db[side];local original=E.NormalizeSide({art=source},side)
-        assert(db.version==34 and c.nativeSmoke and c.nativeEffect==glow)
+        assert(db.version==41 and c.nativeSmoke and c.nativeEffect==glow)
         assert(c.flip==(side=='left') and not E.GetHaloConfig(c))
         local function checkBake(id)
             local actual=E.GetEffectConfig(c,id);local expected=approvedSisters[sister][id]
@@ -613,8 +613,22 @@ for _,oldChoice in ipairs({false,true}) do
     local restored=E.Normalize({version=30,left={art='violetSpire',size=117,x=12,y=9,
         devEffects={violetSpire={originalCrystal=oldChoice,sealSize=183,trailX=42,trailOpacity=37}}},
         right={art='kirinTor'},pair={linked=false,separation=640}})
-    assert(restored.version==34 and restored.left.size==117 and restored.left.x==12 and restored.left.y==9)
+    assert(restored.version==41 and restored.left.size==117 and restored.left.x==12 and restored.left.y==9)
     assert(restored.left.devEffects.violetSpire.originalCrystal==nil and restored.left.sealSize==183)
     assert(restored.left.trailX==42 and restored.left.trailOpacity==37 and restored.pair.separation==640)
 end
 print('PASS: retired native crystal setting removed on schema30 upgrade, custom renderer restored with seal/glow/personal placement retained')
+
+-- Schema 40 changes only Soulbound's layer preference, once, in both modes.
+local layerSave={version=39,mode='end',left={art='soulbound',x=17,
+    effectLayers={soulbound={felFlame='back',felMagic='back',shadowGlow='back'}}},right={art='hexbound'}}
+local raised=E.Normalize(layerSave)
+for _,id in ipairs({'felFlame','felMagic','shadowGlow'}) do
+    assert(E.GetEffectConfig(raised.left,id).effectLayer==E.GetEffectDefaults('soulbound',id).effectLayer)
+    assert(E.GetEffectConfig(raised.otherMode.left,id).effectLayer==E.GetEffectDefaults('soulbound',id).effectLayer)
+end
+assert(raised.left.x==17 and E.GetEffectConfig(raised.right,'shadowGlow').effectLayer=='front')
+E.SelectEffect(raised.left,'shadowGlow');E.SetEffectLayer(raised.left,'back')
+local kept=E.Normalize(raised)
+assert(E.GetEffectConfig(kept.left,'shadowGlow').effectLayer=='back','Later dev overrides must persist')
+print('PASS: Soulbound front-layer upgrade preserves placement, Hexbound layers and later developer choices')

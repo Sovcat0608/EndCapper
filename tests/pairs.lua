@@ -30,9 +30,9 @@ for _,row in ipairs(E.ArtworkPairs) do
         end
     end
 end
-local bad=E.Normalize({pair={linked=true,art='external',size=0/0,separation=9999,x=999,y=-999}})
+local bad=E.Normalize({pair={linked=true,art='external',size=0/0,separation=9999,x=99999,y=-999}})
 assert(bad.pair.art=='skull' and bad.pair.size==100 and bad.pair.separation==2000)
-assert(bad.left.x==0 and bad.right.x==0 and bad.pair.x==200 and bad.left.y==-200)
+assert(bad.left.x==0 and bad.right.x==0 and bad.pair.x==10000 and bad.left.y==-200)
 EndCapperDB=db;E.Begin();E.draft.pair.size=77;E.SyncPair(E.draft);E.Cancel()
 assert(EndCapperDB.pair.size==120 and EndCapperDB.left.size==120)
 E.Begin();E.draft.pair.size=130;E.SyncPair(E.draft);E.Commit()

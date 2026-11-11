@@ -1,6 +1,7 @@
 local _, E = ...
 local side = "left"
 local refreshing = false
+local nativeDialogTarget
 local priestEdit = "effects" -- Session-only choice; never part of saved calibration.
 local function label(parent, text, x, y, font)
     local l = parent:CreateFontString(nil, "OVERLAY", font or "GameFontNormal")
@@ -13,6 +14,33 @@ local function button(parent, text, x, y, width, callback)
     b:SetScript("OnClick", callback)
     return b
 end
+local function nativeSlider(parent,x,y,width,low,high,title)
+    local control=CreateFrame("Frame",nil,parent,"MinimalSliderWithSteppersTemplate")
+    control:SetPoint("TOPLEFT",x,y);control:SetSize(width-48,20)
+    local suffix=title:find("(%)",1,true) and "%" or ""
+    control:Init(low,low,high,high-low,{
+        [MinimalSliderWithSteppersMixin.Label.Right]=function(value) return string.format("%g",value)..suffix end,
+    })
+    local slider=control.Slider
+    slider.control=control
+    slider:EnableMouseWheel(true)
+    slider:SetScript("OnMouseWheel",function(self,delta)
+        if refreshing or not E.draft or InCombatLockdown() or not control:IsSliderEnabled() then return end
+        self:SetValue(self:GetValue()+delta)
+    end)
+    return slider
+end
+
+local function enableSlider(slider,enabled)
+    slider.control:SetEnabled(enabled)
+    slider:EnableMouseWheel(enabled)
+end
+
+local function pairOffset(db)
+    if db.mode=="corner" then return db.pair.x end
+    return E.GetPairOffset and E.GetPairOffset(db) or db.pair.x
+end
+
 local function pairLabel(art,swapped)
     if art=="default" or art=="hidden" then return E.artworkByID[art].name end
     local row=E.PairByArt[art]
@@ -23,8 +51,9 @@ end
 function E.UpdateSaveButton()
     if E.panel and E.panel.save then E.panel.save:SetEnabled(not InCombatLockdown() and E.HasChanges()) end
 end
-local function preview(targetSide)
-    E.Apply(targetSide);E.UpdateSaveButton()
+local function preview(targetSide,bothModes)
+    local mode=not bothModes and E.draft and E.draft.mode or nil
+    E.Apply(targetSide,mode);E.UpdateSaveButton()
 end
 function E.RefreshOptions()
     if not E.panel or not E.draft then return end
@@ -32,17 +61,40 @@ function E.RefreshOptions()
     local p, c = E.panel, E.draft[side]
     local shared=E.draft.pair
     local linked=shared.linked
+    local corner=E.draft.mode=="corner"
+    local showSpacing=linked and not corner
+    for mode,tab in pairs(p.modeTabs) do
+        if mode==E.draft.mode then PanelTemplates_SelectTab(tab)
+        else PanelTemplates_DeselectTab(tab) end
+    end
+    p.enableMode:SetChecked(E.draft.enabled)
+    p.showLauncher:SetChecked(E.draft.launcher.shown)
     p.link:SetChecked(linked);p.swap:SetShown(linked);p.swap:SetChecked(shared.swapped)
     p.resetSide:SetText(linked and "Reset pair" or "Reset side")
-    p.positionNote:SetText(linked and "X moves both frames. Y offsets artwork." or "Offsets move artwork. Drag the box to move the cap.")
-    p.separation:SetShown(linked);p.separationCaption:SetShown(linked)
+    local movable=E.artworkByID[c.art].path~=nil
+    if c.art=="default" then
+        p.positionNote:SetText("Move Default caps in Blizzard Edit Mode.")
+    elseif movable then
+        p.positionNote:SetText(linked and "Drag either outline to move the pair." or "Drag an outline to move a custom cap.")
+    else
+        p.positionNote:SetText("Select artwork to move this cap.")
+    end
+    p.flip:SetEnabled(movable);p.swap:SetEnabled(movable);p.snapBottom:SetEnabled(movable)
+    p.snapBottom:SetText(corner and (linked and "Snap to corners" or "Snap to corner") or "Snap to bottom")
+    p.snapBottom:SetSize(showSpacing and 142 or 292,24)
+    p.snapCenter:SetShown(showSpacing);p.snapCenter:SetEnabled(movable)
+    enableSlider(p.separation,movable)
+    for _,slider in pairs(p.sliders) do enableSlider(slider,movable) end
+    p.separation.control:SetShown(showSpacing);p.separationCaption:SetShown(showSpacing)
     p.separation:SetValue(shared.separation)
     local priest=E.PriestArtworks[c.art]~=nil
     local priestEffects=E.PriestEffectPairs[c.art]~=nil
     local halo=E.GetHaloConfig(c)
     local haloTabs=priestEffects and halo~=nil
     local nativeVisible=not haloTabs or priestEdit=="effects"
-    p.heading:SetText(linked and "Linked end caps" or (side == "left" and "Left end cap" or "Right end cap"))
+    local capName=corner and "corner cap" or "end cap"
+    local sideName=side=="left" and "Left " or "Right "
+    p.heading:SetText(linked and ("Linked "..capName.."s") or sideName..capName)
     p.flip:SetChecked(linked and shared.flip or E.FlipChecked(c,side))
     p.dev:SetShown(E.devMode == true)
     local moonlight=E.EffectProfiles[c.art] and E.EffectProfiles[c.art].moonlight
@@ -71,6 +123,15 @@ function E.RefreshOptions()
     if c.art=="kirinTor" then
         p.dev.heading:SetText("Developer: "..side.." effects")
         p.dev.note:SetText("Seal + glow run together. Select one to edit.")
+    end
+    if E.WarlockArtworks[c.art] then
+        p.dev.heading:SetText("Developer: "..side.." effects")
+        p.dev.note:SetText("All three run. Select one to edit; opacity 0 hides it.")
+    end
+    if E.UndercityEffects[c.art] then
+        p.dev.heading:SetText("Developer: "..side.." effects")
+        p.dev.note:SetText(c.art=="cryptgate" and "All five run. Each eye trail is independent."
+            or "Both fogs + lamp glow run. Select one to edit.")
     end
     if E.WorgenArtworks[c.art] then
         p.dev.heading:SetText("Developer: "..side.." effects")
@@ -112,11 +173,17 @@ function E.RefreshOptions()
     p.dev.controls:SetPoint("TOPLEFT",p.dev.native,"TOPLEFT",0,-extraRows)
     p.dev:SetSize(330,(sealVisible and 510 or (haloTabs and 487 or 453))+extraRows)
     for key, slider in pairs(p.dev.sliders) do
-        slider:SetValue(effect[key]); slider:EnableMouse(editable); slider:EnableMouseWheel(editable)
-        slider:SetAlpha(editable and 1 or 0.35)
+        slider:SetValue(effect[key]);enableSlider(slider,editable)
     end
     p.dev.reset:SetEnabled(editable); p.dev.report:SetEnabled(editable)
-    for key, slider in pairs(p.sliders) do slider:SetValue(linked and shared[key] or c[key]) end
+    local x=linked and pairOffset(E.draft) or c.x
+    local limit=linked and math.min(10000,math.ceil(math.max(UIParent:GetWidth()/2,math.abs(x)))) or 200
+    p.sliders.x:SetMinMaxValues(-limit,limit)
+    p.sliders.x:SetValue(x)
+    p.sliders.x.control:UpdateStepperStates()
+    p.xCaption:SetText(linked and (corner and "Corner inset X" or "Pair centre X offset") or "Artwork X from frame centre")
+    p.sliders.size:SetValue(linked and shared.size or c.size)
+    p.sliders.y:SetValue(linked and shared.y or c.y)
     for _,column in ipairs({'left','right'}) do
         p.artDropdowns[column]:SetShown(not linked)
         p.artDropdownLabels[column]:SetShown(not linked)
@@ -125,13 +192,20 @@ function E.RefreshOptions()
     p.pairDropdown:SetShown(linked);p.pairDropdownLabel:SetShown(linked)
     if linked then p.pairDropdown:GenerateMenu() end
     p.left:SetEnabled(not linked and side ~= "left"); p.right:SetEnabled(not linked and side ~= "right")
+    if E.UpdateCapSelection then E.UpdateCapSelection(side) end
     refreshing = false
     E.UpdateSaveButton()
 end
+function E.SelectCapSide(selectedSide)
+    if not E.draft or InCombatLockdown() or side==selectedSide then return end
+    side=selectedSide
+    E.RefreshOptions()
+end
+
 local function makePanel()
     local p = CreateFrame("Frame", "EndCapperOptions", UIParent, "BackdropTemplate")
     E.panel = p
-    p:Hide(); p:SetSize(340,574); p:SetPoint("CENTER"); p:SetFrameStrata("DIALOG")
+    p:Hide(); p:SetSize(340,614); p:SetPoint("CENTER"); p:SetFrameStrata("DIALOG")
     p:SetClampedToScreen(true); p:EnableMouse(true); p:SetMovable(true)
     p:RegisterForDrag("LeftButton")
     p:SetScript("OnDragStart", p.StartMoving)
@@ -143,20 +217,48 @@ local function makePanel()
     local close = CreateFrame("Button", nil, p, "UIPanelCloseButton")
     close:SetPoint("TOPRIGHT", -3, -3)
     close:SetScript("OnClick", function() p:Hide() end)
+    p.modeTabs={}
+    local previous
+    for _,mode in ipairs({"end","corner"}) do
+        local tab=CreateFrame("Button",nil,p,"PanelTopTabButtonTemplate")
+        tab:SetText(mode=="end" and "End Cap" or "Corner Cap")
+        if previous then tab:SetPoint("LEFT",previous,"RIGHT",6,0)
+        else tab:SetPoint("TOPLEFT",20,-46) end
+        tab:SetScript("OnClick",function()
+            if not E.draft or InCombatLockdown() then return end
+            E.SelectMode(E.draft,mode)
+            if E.UpdateDragHandles then E.UpdateDragHandles() end
+            E.RefreshOptions()
+        end)
+        p.modeTabs[mode]=tab;previous=tab
+    end
+    p.enableMode=CreateFrame("CheckButton",nil,p,"UICheckButtonTemplate")
+    p.enableMode:SetPoint("TOPLEFT",15,-90);label(p,"Enable",47,-99)
+    p.enableMode:SetScript("OnClick",function(self)
+        if not E.draft or InCombatLockdown() then return end
+        E.draft.enabled=self:GetChecked() and true or false
+        preview()
+    end)
     local controls=CreateFrame("Frame",nil,p,"BackdropTemplate")
-    p.controls=controls;controls:SetPoint("TOPLEFT",12,-158);controls:SetSize(316,324)
+    p.controls=controls;controls:SetPoint("TOPLEFT",12,-198);controls:SetSize(316,324)
     controls:SetBackdrop({bgFile="Interface\\Tooltips\\UI-Tooltip-Background",
         edgeFile="Interface\\Tooltips\\UI-Tooltip-Border",tile=true,tileSize=16,edgeSize=16,
         insets={left=4,right=4,top=4,bottom=4}})
     controls:SetBackdropColor(0,0,0,0.15)
     controls:SetBackdropBorderColor(0.6,0.6,0.6,0.25)
-    p.left = button(controls,"Left cap",12,-12,140,function() side="left";E.RefreshOptions() end)
-    p.right = button(controls,"Right cap",164,-12,140,function() side="right";E.RefreshOptions() end)
+    p.left = button(controls,"Left cap",12,-12,140,function() E.SelectCapSide("left") end)
+    p.right = button(controls,"Right cap",164,-12,140,function() E.SelectCapSide("right") end)
     p.heading = label(controls,"",12,-46)
     p.link=CreateFrame("CheckButton",nil,p,"UICheckButtonTemplate")
-    p.link:SetPoint("TOPLEFT",17,-50);label(p,"Link pairs",50,-59)
+    p.link:SetPoint("TOPLEFT",98,-90);label(p,"Link pairs",130,-99)
     p.link:SetScript("OnClick",function(self)
         E.LinkPair(E.draft,side,self:GetChecked());preview();E.RefreshOptions()
+    end)
+    p.showLauncher=CreateFrame("CheckButton",nil,p,"UICheckButtonTemplate")
+    p.showLauncher:SetPoint("TOPLEFT",195,-90);label(p,"Show Ecap button",227,-99)
+    p.showLauncher:SetScript("OnClick",function(self)
+        E.draft.launcher.shown=self:GetChecked() and true or false
+        preview()
     end)
     p.swap=CreateFrame("CheckButton",nil,controls,"UICheckButtonTemplate")
     p.swap:SetPoint("TOPLEFT",161,-64);label(p.swap,"Swap",33,-9)
@@ -165,11 +267,11 @@ local function makePanel()
         E.SyncPair(E.draft);preview();E.RefreshOptions()
     end)
     local artPage = controls
-    p.artDropdownLabels={left=label(p,"Left artwork",20,-90),right=label(p,"Right artwork",176,-90)}
+    p.artDropdownLabels={left=label(p,"Left artwork",20,-130),right=label(p,"Right artwork",176,-130)}
     p.artDropdowns={}
     for index,column in ipairs({'left','right'}) do
         local dropdown=CreateFrame('DropdownButton',nil,p,'WowStyle1DropdownTemplate')
-        dropdown:SetPoint('TOPLEFT',20+(index-1)*156,-112);dropdown:SetSize(144,32)
+        dropdown:SetPoint('TOPLEFT',20+(index-1)*156,-152);dropdown:SetSize(144,32)
         dropdown:SetDefaultText('Select artwork')
         dropdown:SetupMenu(function(_,root)
             if not E.draft then return end
@@ -182,21 +284,23 @@ local function makePanel()
                 local second
                 if row[2] then second=first==row[1] and row[2] or row[1] end
                 for _,id in ipairs(second and {first,second} or {first}) do
-                    root:CreateRadio(E.artworkByID[id].name,function(value)
-                        return E.draft and E.draft[column].art==value
-                    end,function(value)
-                        if not E.draft or E.draft.pair.linked or InCombatLockdown() then return end
-                        side=column;E.SelectArtwork(E.draft[column],value,column);preview(column)
-                        E.RefreshOptions()
-                    end,id)
+                    if id~="default" or E.draft.mode=="end" then
+                        root:CreateRadio(E.artworkByID[id].name,function(value)
+                            return E.draft and E.draft[column].art==value
+                        end,function(value)
+                            if not E.draft or E.draft.pair.linked or InCombatLockdown() then return end
+                            side=column;E.SelectArtwork(E.draft[column],value,column);preview(column)
+                            E.RefreshOptions()
+                        end,id)
+                    end
                 end
             end
         end)
         p.artDropdowns[column]=dropdown
     end
-    p.pairDropdownLabel=label(p,"Linked artwork",20,-90)
+    p.pairDropdownLabel=label(p,"Linked artwork",20,-130)
     local pairDropdown=CreateFrame('DropdownButton',nil,p,'WowStyle1DropdownTemplate');p.pairDropdown=pairDropdown
-    pairDropdown:SetPoint('TOPLEFT',20,-112);pairDropdown:SetSize(300,32);pairDropdown:SetDefaultText('Select pair')
+    pairDropdown:SetPoint('TOPLEFT',20,-152);pairDropdown:SetSize(300,32);pairDropdown:SetDefaultText('Select pair')
     pairDropdown:SetupMenu(function(_,root)
         if not E.draft then return end
         root:SetScrollMode(280)
@@ -209,7 +313,10 @@ local function makePanel()
             end,art)
         end
         for _,row in ipairs(E.ArtworkPairs) do
-            if row[1]=='default' then add('default');add('hidden') else add(row[1]) end
+            if row[1]=="default" then
+                if E.draft.mode=="end" then add("default") end
+                add("hidden")
+            else add(row[1]) end
         end
     end)
     p.flip = CreateFrame("CheckButton", nil, artPage, "UICheckButtonTemplate")
@@ -221,70 +328,60 @@ local function makePanel()
         else E.draft[side].flip = (self:GetChecked() and true or false) ~= E.DefaultMirror(E.draft[side].art,side); preview(side) end
     end)
     p.sliders = {}
+    local function setPairX(value)
+        if not E.draft or not E.draft.pair.linked or InCombatLockdown() then return end
+        E.SetPairOffset(E.draft,value);preview();E.RefreshOptions()
+    end
     local specs = {{"size", "Size (%)", 50, 200, artPage, -110},
         {"x", "Artwork X from frame centre", -200, 200, artPage, -153},
         {"y", "Artwork Y above bottom", -200, 200, artPage, -196}}
     for _, spec in ipairs(specs) do
         local key, title, low, high, parent, y = unpack(spec)
         local caption = label(parent,title,12,y)
-        local slider = CreateFrame("Slider", nil, parent)
-        slider:SetPoint("TOPLEFT",12,y-19); slider:SetSize(290, 14)
-        slider:SetOrientation("HORIZONTAL"); slider:EnableMouse(true)
-        local track = slider:CreateTexture(nil, "BACKGROUND")
-        track:SetAtlas("common-slider-track"); track:SetAllPoints()
-        local thumb = slider:CreateTexture(nil, "ARTWORK")
-        thumb:SetAtlas("common-slider-thumb"); thumb:SetSize(20, 24)
-        slider:SetThumbTexture(thumb)
-        slider:SetMinMaxValues(low, high); slider:SetValueStep(1); slider:SetObeyStepOnDrag(true)
-        slider:EnableMouseWheel(true)
-        slider:SetScript("OnMouseWheel", function(self, delta)
-            self:SetValue(math.max(low, math.min(high, self:GetValue() + delta)))
-        end)
-        slider:SetScript("OnValueChanged", function(_, value)
-            value = math.floor(value + 0.5)
-            local captionTitle=key=="x" and E.draft and E.draft.pair.linked and "Pair centre X offset" or title
-            caption:SetText(captionTitle .. ": " .. value)
+        if key=="x" then p.xCaption=caption end
+        local slider=nativeSlider(parent,12,y-19,290,low,high,title)
+        slider:HookScript("OnValueChanged", function(_, value)
             if not refreshing and E.draft then
-                if E.draft.pair.linked then E.draft.pair[key]=value;E.SyncPair(E.draft);preview();E.RefreshOptions()
-                else E.draft[side][key] = value; preview(side) end
+                if E.draft.pair.linked then
+                    if key=="x" then setPairX(value)
+                    else E.draft.pair[key]=math.floor(value+0.5);E.SyncPair(E.draft);preview();E.RefreshOptions() end
+                else E.draft[side][key]=math.floor(value+0.5);preview(side) end
             end
         end)
         p.sliders[key] = slider
     end
-    p.separationCaption=label(controls,"Separation distance: 0",12,-239)
-    local separation=CreateFrame("Slider",nil,controls);p.separation=separation
-    separation:SetPoint("TOPLEFT",12,-258);separation:SetSize(290,14)
-    separation:SetOrientation("HORIZONTAL");separation:EnableMouse(true);separation:EnableMouseWheel(true)
-    local separationTrack=separation:CreateTexture(nil,"BACKGROUND");separationTrack:SetAtlas("common-slider-track");separationTrack:SetAllPoints()
-    local separationThumb=separation:CreateTexture(nil,"ARTWORK");separationThumb:SetAtlas("common-slider-thumb");separationThumb:SetSize(20,24)
-    separation:SetThumbTexture(separationThumb);separation:SetMinMaxValues(0,2000);separation:SetValueStep(2);separation:SetObeyStepOnDrag(true)
-    separation:SetScript("OnMouseWheel",function(self,delta) self:SetValue(math.max(0,math.min(2000,self:GetValue()+delta*2))) end)
-    separation:SetScript("OnValueChanged",function(_,value)
-        value=math.floor(value/2+0.5)*2;p.separationCaption:SetText("Separation distance: "..value)
-        if not refreshing and E.draft and E.draft.pair.linked then
-            E.draft.pair.separation=value;E.draft.pair.separationInitialized=true;E.SyncPair(E.draft);preview();E.RefreshOptions()
+    p.separationCaption=label(controls,"Separation distance",12,-239)
+    local separation=nativeSlider(controls,12,-258,290,0,2000,"Separation distance");p.separation=separation
+    separation:HookScript("OnValueChanged",function(_,value)
+        if not refreshing and E.draft and E.draft.mode=="end" and E.draft.pair.linked then
+            E.draft.pair.separation=math.floor(value+0.5);E.draft.pair.separationInitialized=true;E.SyncPair(E.draft);preview();E.RefreshOptions()
         end
     end)
+    local function snapActiveMode()
+        if E.draft.mode=="corner" then E.SnapToCorner(E.draft,side) else E.SnapToBottom(E.draft,side) end
+    end
     p.snapBottom=button(controls,"Snap to bottom",12,-287,292,function()
-        E.SnapToBottom(E.draft,side)
+        snapActiveMode()
         if E.draft.pair.linked then preview() else preview(side) end;E.RefreshOptions()
     end)
-    label(p,"Save changes for both caps.",20,-492,"GameFontHighlightSmall")
-    p.positionNote=label(p,"Offsets move artwork. Drag the box to move the cap.",20,-509,"GameFontHighlightSmall")
-    p.resetSide=button(p,"Reset side",20,-535,96,function()
+    p.snapCenter=button(controls,"Snap to center",162,-287,142,function() setPairX(0) end)
+    label(p,"Save changes in both tabs.",20,-532,"GameFontHighlightSmall")
+    p.positionNote=label(p,"Offsets move artwork. Drag the box to move the cap.",20,-549,"GameFontHighlightSmall")
+    p.resetSide=button(p,"Reset side",20,-575,96,function()
         if E.draft.pair.linked then
-            local pair=E.draft.pair;pair.size=100;pair.x=0;pair.y=0;pair.flip=false;pair.swapped=false
+            local pair=E.draft.pair;pair.size=100;pair.y=0;pair.flip=false;pair.swapped=false
+            E.SetPairOffset(E.draft,0)
             E.SyncPair(E.draft)
-            E.ResetPairSeparation(E.draft)
+            if E.draft.mode=="end" then E.ResetPairSeparation(E.draft) end
         else E.draft[side] = E.NormalizeSide(nil, side) end
-        E.SnapToBottom(E.draft,side)
+        snapActiveMode()
         if E.draft.pair.linked then preview() else preview(side) end
         E.RefreshOptions()
     end)
-    button(p,"Cancel",122,-535,92,function() p:Hide() end)
-    p.save=button(p,"Save",220,-535,100,function()
+    button(p,"Cancel",122,-575,92,function() p:Hide() end)
+    p.save=button(p,"Save",220,-575,100,function()
         if InCombatLockdown() or not E.HasChanges() then return end
-        E.Commit(); E.Begin(); preview(); E.RefreshOptions()
+        E.Commit(); E.Begin(); preview(nil,true); E.RefreshOptions()
     end)
     local dev=CreateFrame("Frame", nil, p, "BackdropTemplate")
     p.dev=dev; dev:Hide(); dev:SetSize(330, 453)
@@ -330,16 +427,10 @@ local function makePanel()
     for i,spec in ipairs(E.devEffectFields) do
         local key,title,low,high=unpack(spec)
         local y=-128-(i-1)*43
-        local caption=label(controls,title,20,y)
-        local slider=CreateFrame("Slider",nil,controls)
-        slider:SetPoint("TOPLEFT",22,y-19); slider:SetSize(285,14)
-        slider:SetOrientation("HORIZONTAL"); slider:EnableMouse(true); slider:EnableMouseWheel(true)
-        local track=slider:CreateTexture(nil,"BACKGROUND"); track:SetAtlas("common-slider-track"); track:SetAllPoints()
-        local thumb=slider:CreateTexture(nil,"ARTWORK"); thumb:SetAtlas("common-slider-thumb"); thumb:SetSize(20,24)
-        slider:SetThumbTexture(thumb); slider:SetMinMaxValues(low,high); slider:SetValueStep(1); slider:SetObeyStepOnDrag(true)
-        slider:SetScript("OnMouseWheel",function(self,delta) self:SetValue(math.max(low,math.min(high,self:GetValue()+delta))) end)
-        slider:SetScript("OnValueChanged",function(_,value)
-            value=math.floor(value+0.5); caption:SetText(title .. ": " .. value)
+        label(controls,title,20,y)
+        local slider=nativeSlider(controls,22,y-19,285,low,high,title)
+        slider:HookScript("OnValueChanged",function(_,value)
+            value=math.floor(value+0.5)
             if not refreshing and E.draft then E.SetDevEffect(E.draft[side],key,value); preview(side) end
         end)
         dev.sliders[key]=slider
@@ -361,22 +452,17 @@ local function makePanel()
         local c=E.draft[side]; local v=E.GetEffectConfig(c)
         local seal=c.art=="violetSpire" and string.format(", seal=%d%%",v.sealSize) or ""
         E.Message(string.format("%s / %s (%s, flip=%s, mirrored=%s): size=%d, angle=%d, origin=%d / %d, opacity=%d%%, layer=%s%s. Click Save to keep changes.",
-            E.artworkByID[c.art].name,E.NativeEffectProfiles[v.nativeEffect].name,side,tostring(E.FlipChecked(c,side)),tostring(c.flip),v.trailSize,v.trailAngle,v.trailX,v.trailY,v.trailOpacity,v.effectLayer,seal))
+            E.artworkByID[c.art].name,E.NativeEffectProfiles[v.nativeEffect].name,side,tostring(E.FlipChecked(c,side)),tostring(E.RenderFlip(c,E.draft.mode)),v.trailSize,v.trailAngle,v.trailX,v.trailY,v.trailOpacity,v.effectLayer,seal))
     end)
     label(controls,"Save keeps tuning; Cancel discards preview.",18,-419,"GameFontHighlightSmall")
     local halo=CreateFrame("Frame",nil,dev);dev.halo=halo;halo:Hide()
     halo:SetPoint("TOPLEFT",dev,"TOPLEFT",18,-104);halo:SetSize(295,360);halo.sliders={}
     for i,spec in ipairs(E.HaloFields) do
         local key,title,low,high=unpack(spec)
-        local caption=label(halo,title,2,-(i-1)*48)
-        local s=CreateFrame("Slider",nil,halo);s:SetSize(285,14);s:SetPoint("TOPLEFT",4,-19-(i-1)*48)
-        s:SetOrientation("HORIZONTAL");s:EnableMouse(true);s:EnableMouseWheel(true)
-        local track=s:CreateTexture(nil,"BACKGROUND");track:SetAtlas("common-slider-track");track:SetAllPoints()
-        local thumb=s:CreateTexture(nil,"ARTWORK");thumb:SetAtlas("common-slider-thumb");thumb:SetSize(20,24)
-        s:SetThumbTexture(thumb);s:SetMinMaxValues(low,high);s:SetValueStep(1);s:SetObeyStepOnDrag(true)
-        s:SetScript("OnMouseWheel",function(self,delta) self:SetValue(math.max(low,math.min(high,self:GetValue()+delta))) end)
-        s:SetScript("OnValueChanged",function(_,value)
-            value=math.floor(value+0.5);caption:SetText(title..": "..value)
+        label(halo,title,2,-(i-1)*48)
+        local s=nativeSlider(halo,4,-19-(i-1)*48,285,low,high,title)
+        s:HookScript("OnValueChanged",function(_,value)
+            value=math.floor(value+0.5)
             if not refreshing and E.draft then E.SetHalo(E.draft[side],key,value);preview(side) end
         end)
         halo.sliders[key]=s
@@ -395,32 +481,28 @@ local function makePanel()
         if not E.draft then return end
         local c=E.draft[side];local v=E.GetHaloConfig(c);if not v then return end
         E.Message(string.format("%s / Halo (%s, flip=%s, mirrored=%s): size=%d%%, origin=%d / %d, opacity=%d%%, revolution=%ds, reverse=%s, layer=back. Click Save to keep changes.",
-            E.artworkByID[c.art].name,side,tostring(E.FlipChecked(c,side)),tostring(c.flip),v.size,v.x,v.y,v.opacity,v.period,tostring(v.reverse)))
+            E.artworkByID[c.art].name,side,tostring(E.FlipChecked(c,side)),tostring(E.RenderFlip(c,E.draft.mode)),v.size,v.x,v.y,v.opacity,v.period,tostring(v.reverse)))
     end)
     label(halo,"Save keeps tuning; Cancel discards preview.",0,-325,"GameFontHighlightSmall")
     local seal=CreateFrame("Frame",nil,dev); dev.seal=seal
     seal:SetSize(300,46); seal:SetPoint("TOPLEFT",20,-448); seal:Hide()
-    local caption=label(seal,"Seal size (%): 100",0,0)
-    local slider=CreateFrame("Slider",nil,seal); seal.slider=slider
-    slider:SetSize(285,14); slider:SetPoint("TOPLEFT",2,-19)
-    slider:SetOrientation("HORIZONTAL"); slider:EnableMouse(true); slider:EnableMouseWheel(true)
-    local track=slider:CreateTexture(nil,"BACKGROUND"); track:SetAtlas("common-slider-track"); track:SetAllPoints()
-    local thumb=slider:CreateTexture(nil,"ARTWORK"); thumb:SetAtlas("common-slider-thumb"); thumb:SetSize(20,24)
-    slider:SetThumbTexture(thumb); slider:SetMinMaxValues(25,250); slider:SetValueStep(1); slider:SetObeyStepOnDrag(true)
-    slider:SetScript("OnMouseWheel",function(self,delta) self:SetValue(math.max(25,math.min(250,self:GetValue()+delta))) end)
-    slider:SetScript("OnValueChanged",function(_,value)
-        value=math.floor(value+0.5); caption:SetText("Seal size (%): "..value)
+    label(seal,"Seal size (%)",0,0)
+    local slider=nativeSlider(seal,2,-19,285,25,250,"Seal size (%)");seal.slider=slider
+    slider:HookScript("OnValueChanged",function(_,value)
+        value=math.floor(value+0.5)
         if not refreshing and E.draft then E.SetSealSize(E.draft[side],value); preview(side) end
     end)
     p:SetScript("OnHide", function()
         for _,dropdown in pairs(p.artDropdowns) do dropdown:CloseMenu() end
         p.pairDropdown:CloseMenu()
-        E.Cancel(); preview()
+        E.Cancel()
+        if E.UpdateDragHandles then E.UpdateDragHandles() end
+        preview()
     end)
     table.insert(UISpecialFrames, "EndCapperOptions")
 end
 
-function E.OpenOptions(selectedSide, dock)
+function E.OpenOptions(selectedSide)
     if not E.ready then return end
     if InCombatLockdown() then E.Message("Artwork editing is available after combat."); return end
     if not E.caps.left or not E.caps.right then
@@ -437,23 +519,34 @@ function E.OpenOptions(selectedSide, dock)
     E.Begin()
     if not E.panel:IsShown() then
         E.panel:ClearAllPoints()
-        if dock then E.panel:SetPoint("TOPLEFT", dock, "TOPRIGHT", 8, 0)
-        else E.panel:SetPoint("CENTER") end
+        E.panel:SetPoint("CENTER")
     end
-    E.panel:Show(); E.RefreshOptions()
+    E.panel:Show()
+    if E.UpdateDragHandles then E.UpdateDragHandles() end
+    E.RefreshOptions()
+end
+
+function E.DismissNativeCapSettings()
+    if not nativeDialogTarget or InCombatLockdown() then return end
+    local dialog=EditModeSystemSettingsDialog
+    if not dialog or not dialog:IsShown() then return end
+    for _,cap in pairs(E.caps) do
+        if nativeDialogTarget==cap.nativeFrame and cap.suppress then
+            dialog:Hide()
+            return
+        end
+    end
 end
 
 function E.AttachOptions()
-    local dialog = EditModeSystemSettingsDialog
+    local dialog=EditModeSystemSettingsDialog
     if dialog and dialog.UpdateDialog and not E.dialogHooked then
-        E.dialogHooked = true
-        hooksecurefunc(dialog, "UpdateDialog", function(_, systemFrame)
-            for key, cap in pairs(E.caps) do
-                if systemFrame == cap.frame then E.OpenOptions(key, dialog); return end
-            end
-            if E.panel then E.panel:Hide() end
+        E.dialogHooked=true
+        hooksecurefunc(dialog,"UpdateDialog",function(_,systemFrame)
+            nativeDialogTarget=systemFrame
+            E.DismissNativeCapSettings()
         end)
-        dialog:HookScript("OnHide", function() if E.panel then E.panel:Hide() end end)
+        dialog:HookScript("OnShow",E.DismissNativeCapSettings)
     end
     if EventRegistry and not E.registryHooked then
         E.registryHooked = true

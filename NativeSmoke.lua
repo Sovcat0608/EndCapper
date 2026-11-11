@@ -2,6 +2,28 @@ local _, E = ...
 -- NativeSmoke names remain internal for compatibility.
 -- Emitter coordinates were inspected in the model data; see docs/native-smoke.md.
 E.NativeEffectProfiles = {
+    -- Keep saved tuning keys; replace the original ground fog models.
+    -- Rot Fog matches Undead; BlueRadiationFog inspected in Forever 1.60.1.70888.
+    greenGroundFog={fileID=166280,name="Rot Fog",emitterX=0,emitterY=0,emitterZ=0,
+        modelScale=0.22,animation=158,opacity=0.8,centered=true},
+    eerieGroundFog={fileID=165743,name="Blue Mist",emitterX=-0.0377854258,emitterY=0.0422529913,emitterZ=0,
+        modelScale=0.22,animation=158,opacity=0.8,centered=true},
+    -- Flame-only animated mesh lies in Y/Z; view along X like the Kirin Tor seal.
+    candleFlame={fileID=1958358,name="Candle Flame",emitterX=0,emitterY=0,emitterZ=-0.0319035314,
+        modelScale=0.22,cameraAxis="X",animation=0,opacity=0.8,centered=true},
+    -- Separate keys/scenes let each eye retain independent tuning despite sharing a model.
+    amberEyeLeft={fileID=166033,name="Left Eye Trail",emitterX=-0.1388888955,emitterY=0,emitterZ=0,opacity=0.8,centered=true},
+    amberEyeRight={fileID=166033,name="Right Eye Trail",emitterX=-0.1388888955,emitterY=0,emitterZ=0,opacity=0.8,centered=true},
+    -- Existing inspected yellowglow_high particles, scaled for the lantern.
+    lampGlow={fileID=166034,name="Amber Lamp Glow",emitterX=0,emitterY=0,emitterZ=0,
+        modelScale=1,animation=0,opacity=0.8,centered=true},
+    -- Target-build particle data inspected for the warlock sisters.
+    felFlame={fileID=166003,name="Fel Flame",emitterX=-0.1388888955,emitterY=0,emitterZ=0,
+        opacity=0.8,centered=true},
+    felMagic={fileID=166072,name="Fel Casting",emitterX=0,emitterY=-0.0012143453,emitterZ=-0.0384081602,
+        modelScale=0.65,opacity=0.8,centered=true},
+    shadowGlow={fileID=166009,name="Shadow Glow",emitterX=0,emitterY=0,emitterZ=0,
+        opacity=0.8,centered=true},
     -- Target-build ColdBreath: small, slow, origin-centred white mist particles.
     -- Enlarged for the ice edge; separate from Frost Form's mesh and blue flames.
     frostMist={fileID=165412,name="Icy Mist",emitterX=0,emitterY=0,emitterZ=0,
@@ -209,7 +231,7 @@ function E.UpdateNativeSmoke(entry, config)
         local angle = math.rad(config.trailAngle or 14)
         local sine, cosine = math.sin(angle), math.cos(angle)
         for _, slot in ipairs(state.slots) do
-            local frontLevel=config.art=="violetSpire" and 4 or 3
+            local frontLevel=(config.art=="violetSpire" or config.art=="soulbound") and 4 or 3
             slot.scene:SetFrameLevel(entry.frame:GetFrameLevel()+(config.effectLayer=="back" and 1 or frontLevel))
             -- Native colours are intentional for all effects (0.8.2).
             if slot.scene.SetDesaturation then
@@ -286,6 +308,12 @@ local function nativeStatus(entry)
 end
 function E.NativeSmokeStatus(entry)
     local status=nativeStatus(entry)
+    for _,effect in pairs(entry and entry.undercityEffects or {}) do
+        if effect.effectsEnabled then status=status .. "; " .. nativeStatus(effect) end
+    end
+    if entry and entry.warlockEffect and entry.warlockEffect.effectsEnabled then
+        status=status .. "; " .. nativeStatus(entry.warlockEffect)
+    end
     if entry and entry.secondaryEffect and entry.secondaryEffect.effectsEnabled then
         status=status .. "; " .. nativeStatus(entry.secondaryEffect)
     end
