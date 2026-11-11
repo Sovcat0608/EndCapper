@@ -77,6 +77,27 @@ E.activePositionLayout=nil;E.positionLayoutKeys=nil
 E.Begin();E.draft.left.x=83;E.ReconcilePositionLayout()
 assert(E.draft and E.draft.left.x==83 and E.activePositionLayout==modern)
 E.Cancel()
+-- Upgrade a placement-only record, then save distinct choices in both modes.
+EndCapperDB=E.Normalize({version=41,left={art='kirinTor',flip=false},right={art='violetSpire'},
+    pair={linked=true,art='violetSpire',swapped=true},
+    positionProfiles={[modern]={left={x=19},pair={linked=true}}},
+    otherMode={left={art='cryptgate'},right={art='plaguewell'}}})
+assert(EndCapperDB.positionProfiles[modern].pair.art=='violetSpire' and EndCapperDB.positionProfiles[modern].pair.swapped)
+E.activePositionLayout=nil;E.ReconcilePositionLayout()
+assert(EndCapperDB.left.art=='kirinTor' and EndCapperDB.right.art=='violetSpire')
+info.activeLayout=2;E.ReconcilePositionLayout()
+E.Begin();E.SelectArtwork(E.draft.left,'wolf','left');E.draft.left.flip=false
+E.SelectArtwork(E.draft.right,'hidden','right')
+E.SelectMode(E.draft,'corner');E.LinkPair(E.draft,'left',true)
+E.SelectPair(E.draft,'hexbound');E.draft.pair.swapped=true;E.draft.pair.flip=true;E.SyncPair(E.draft)
+E.Commit()
+info.activeLayout=1;E.ReconcilePositionLayout()
+assert(EndCapperDB.left.art=='cryptgate' and EndCapperDB.right.art=='plaguewell')
+assert(EndCapperDB.otherMode.left.art=='kirinTor' and EndCapperDB.otherMode.pair.swapped)
+EndCapperDB=E.Normalize(EndCapperDB);E.activePositionLayout=nil;E.positionLayoutKeys=nil
+info.activeLayout=2;E.ReconcilePositionLayout()
+assert(EndCapperDB.left.art=='soulbound' and EndCapperDB.right.art=='hexbound' and EndCapperDB.pair.flip)
+assert(EndCapperDB.otherMode.left.art=='wolf' and EndCapperDB.otherMode.left.flip==false and EndCapperDB.otherMode.right.art=='hidden')
 C_EditMode=nil;allowed=E.ReconcilePositionLayout();assert(allowed)
 local bad=E.Normalize({positionProfiles={valid={left={x=math.huge,size=999},pair={separation=9999}},invalid='bad'}})
 assert(bad.positionProfiles.valid.left.x==200 and bad.positionProfiles.valid.left.size==200 and bad.positionProfiles.valid.pair.separation==2000)

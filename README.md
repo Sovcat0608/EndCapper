@@ -1,6 +1,6 @@
 # EndCapper
 
-**Version 1.4.0 for World of Warcraft: Forever.**
+**Version 1.4.2 for World of Warcraft: Forever.**
 
 Decorate your action bars and screen corners with 26 fantasy designs. Mix and match artwork or link matching pairs, then adjust placement, size and mirroring from EndCapper’s own panel.
 
@@ -81,7 +81,7 @@ With **Flip horizontally** unchecked, Lordaeron, Shadowfang, Stormhorn, Felwing,
 
 - Designed for Forever's default mouse-and-keyboard action bar (interface 16001).
 - Replacement action-bar addons and gamepad layouts are not supported. Options are English only.
-- Cap positions, sizes and offsets are saved per layout.
+- Artwork selections, mirroring, linked pairs and placement are saved per layout for both End Caps and Corner Caps.
 - Editing is available outside combat. No third-party libraries are required.
 - Native effects may need time to load and refresh automatically when loading completes. Use `/ecap status` if one remains absent; saving changed settings or showing the cap again can recover a late-loaded model.
 - Disabling EndCapper and reloading restores the original caps; saved settings remain available.

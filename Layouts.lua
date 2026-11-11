@@ -45,8 +45,8 @@ function E.SavePositionProfile(key)
 end
 
 local function defaultPosition(db)
-    if db.mode=="corner" then return E.NormalizePosition({}) end
-    return E.NormalizePosition({left={frameBottom=false},right={frameBottom=false}})
+    if db.mode=="corner" then return E.NormalizePosition({},db) end
+    return E.NormalizePosition({left={frameBottom=false},right={frameBottom=false}},db)
 end
 
 function E.ReconcilePositionLayout()

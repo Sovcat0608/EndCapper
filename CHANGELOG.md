@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.4.2
+
+- Save and restore each layout’s selected artwork, mirroring and linked pair order in both cap modes.
+
+## 1.4.1
+
+- Updated the Kirin Tor seal’s default size and position to match the latest calibration.
+
 ## 1.4.0
 
 - Added Kirin Tor, Snowfang, Frosthilt, Frostblade, Hexbound, Soulbound, Cryptgate and Plaguewell. Rebuilt Worgen as Shadowfang and repainted Violetspire, bringing the collection to 26 custom designs.

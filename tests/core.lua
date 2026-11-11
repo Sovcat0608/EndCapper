@@ -491,14 +491,15 @@ C_EditMode={GetLayouts=function() return layouts end}
 E.Cancel();EndCapperDB=E.Normalize({left={art='seraph'},right={art='sanctum'},pair={linked=true,art='seraph',centerX=1000,separation=900}})
 E.Apply();local wide=E.activePositionLayout
 assert(wide and EndCapperDB.pair.separation==900)
-E.Begin();E.draft.pair.separation=1900;E.SyncPair(E.draft);E.Apply();drag(left,70,25)
+E.Begin();E.draft.pair.separation=1900;E.SelectPair(E.draft,'hexbound');E.Apply();drag(left,70,25)
 layouts.activeLayout=5
 left.nativeFrame:SetPoint('BOTTOM',UIParent,'BOTTOMLEFT',200,130);right.nativeFrame:SetPoint('BOTTOM',UIParent,'BOTTOMLEFT',800,160)
 eventFrame:event('EDIT_MODE_LAYOUTS_UPDATED',layouts)
 assert(E.activePositionLayout==wide,'native event must defer before changing layouts')
 E.Apply();assert(not E.draft and not EndCapperDB.pair.linked)
 assert(left.frame.cx==200 and left.frame.cy==177.5 and right.frame.cx==800,'unused layout starts at native centres')
-panelShown=true;E.Begin();E.draft.left.x=33;E.draft.left.y=27;E.draft.left.size=125;E.Apply();drag(left,55,30);E.Commit();E.Apply()
+panelShown=true;E.Begin();E.SelectArtwork(E.draft.left,'wolf','left');E.SelectArtwork(E.draft.right,'whiteWorgen','right')
+E.draft.left.x=33;E.draft.left.y=27;E.draft.left.size=125;E.Apply();drag(left,55,30);E.Commit();E.Apply()
 local narrow=E.activePositionLayout
 layouts.activeLayout=4
 left.nativeFrame:SetPoint('BOTTOM',UIParent,'BOTTOMLEFT',450,27.5);right.nativeFrame:SetPoint('BOTTOM',UIParent,'BOTTOMLEFT',1550,27.5)
@@ -506,19 +507,23 @@ combat=true;E.Apply();assert(E.activePositionLayout==narrow and E.pending)
 combat=false;E.Apply();assert(E.activePositionLayout==wide and EndCapperDB.pair.separation==900)
 assert(EndCapperDB.positionProfiles[wide].pair.separation==900 and not EndCapperDB.positionProfiles[wide].left.frameY,
     'a profile switch must not commit the drag or gap preview')
+assert(left.art.path==E.artworkByID.seraph.path and right.art.path==E.artworkByID.sanctum.path,
+    'a profile switch restores the saved linked artwork instead of the draft or outgoing selections')
 assert(left.frame.cx~=200 and EndCapperDB.left.frameBottom)
 layouts.activeLayout=5
 left.nativeFrame:SetPoint('BOTTOM',UIParent,'BOTTOMLEFT',200,130);right.nativeFrame:SetPoint('BOTTOM',UIParent,'BOTTOMLEFT',800,160)
 E.Apply();assert(EndCapperDB.left.x==33 and EndCapperDB.left.y==27 and EndCapperDB.left.size==125)
 assert(left.frame.cx==255 and left.frame.cy==207.5,'saved drag survives profile switch')
+assert(left.art.path==E.artworkByID.wolf.path and right.art.path==E.artworkByID.whiteWorgen.path)
 eventFrame:event('PLAYER_LOGOUT');assert(EndCapperDB.positionProfiles[narrow].left.x==33)
 -- Failed metadata must not block real rendering, even with existing profiles.
 E.Begin();C_EditMode.GetLayouts=function() error('temporarily unavailable') end
-E.SelectArtwork(E.draft.left,'wolf','left');E.draft.left.size=140;E.Apply('left')
-assert(left.art.path==E.artworkByID.wolf.path and left.art.width==280,'art/size preview survives profile lookup failure')
+E.SelectArtwork(E.draft.left,'whiteWorgen','left');E.draft.left.size=140;E.Apply('left')
+assert(left.art.path==E.artworkByID.whiteWorgen.path and left.art.width==280,'art/size preview survives profile lookup failure')
 E.Commit();E.Apply()
-assert(EndCapperDB.left.art=='wolf' and EndCapperDB.left.size==140)
+assert(EndCapperDB.left.art=='whiteWorgen' and EndCapperDB.left.size==140)
 assert(EndCapperDB.positionProfiles[narrow].left.size==125,'unknown layout must not overwrite the last known placement record')
+assert(EndCapperDB.positionProfiles[narrow].left.art=='wolf','unknown layout must not overwrite saved artwork')
 C_EditMode.GetLayouts=function() return layouts end;E.Apply()
 assert(EndCapperDB.left.size==140 and E.activePositionLayout==narrow)
 C_EditMode,Enum,EditModePresetLayoutManager=priorAPI,priorEnum,priorPresets

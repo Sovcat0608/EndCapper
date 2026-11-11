@@ -189,7 +189,7 @@ function E.GetEffectDefaults(art, id)
         return {nativeEffect="worgenGloom",trailSize=91,trailAngle=-91,trailX=2,trailY=-79,trailOpacity=100,effectLayer="front"}
     end
     if art=="kirinTor" and id=="kirinSeal" then
-        return {nativeEffect="kirinSeal",trailSize=100,trailAngle=90,trailX=-23,trailY=30,trailOpacity=75,effectLayer="front"}
+        return {nativeEffect="kirinSeal",trailSize=50,trailAngle=90,trailX=-16,trailY=40,trailOpacity=75,effectLayer="front"}
     end
     if art=="skull" and id=="rotFog" then
         return {nativeEffect="rotFog",trailSize=91,trailAngle=90,trailX=-9,trailY=-73,trailOpacity=3,effectLayer="front"}
@@ -562,7 +562,7 @@ local function normalizeMode(value,mode,version,skipProfiles)
         local count=0
         for key,profile in pairs(value.positionProfiles) do
             if type(key)=="string" and #key<=512 and type(profile)=="table" and count<128 then
-                result.positionProfiles[key]=E.NormalizePosition(profile);count=count+1
+                result.positionProfiles[key]=E.NormalizePosition(profile,result);count=count+1
             end
         end
     end
@@ -606,16 +606,35 @@ function E.RenderFlip(config,mode)
     return config.flip~=(mode=="corner")
 end
 
-E.SidePositionFields={"size","x","y","frameBottom","artBottom","frameX","frameY"}
-E.PairPositionFields={"linked","size","x","y","separation","separationInitialized","centerX","artBottom"}
-function E.NormalizePosition(value)
+E.SidePositionFields={"art","flip","size","x","y","frameBottom","artBottom","frameX","frameY"}
+E.PairPositionFields={"art","swapped","flip","linked","size","x","y","separation","separationInitialized","centerX","artBottom"}
+function E.NormalizePosition(value,selection)
+    -- Older profiles only have placement. Seed their selection from the mode's
+    -- last saved caps when upgrading, then store each layout independently.
+    selection=selection or value
     local result={pair={}}
     for _,side in ipairs({"left","right"}) do
-        local normalized=E.NormalizeSide(value[side],side);result[side]={}
+        local source=type(value[side])=="table" and value[side] or {}
+        local fallback=selection[side] or {}
+        local art,flip=source.art,source.flip
+        if not E.artworkByID[art] then art,flip=fallback.art,fallback.flip end
+        if not E.artworkByID[art] then art="skull" end
+        if selection.mode=="corner" and art=="default" then art="hidden" end
+        local normalized=E.NormalizeSide(source,side);result[side]={}
         for _,key in ipairs(E.SidePositionFields) do result[side][key]=normalized[key] end
+        result[side].art=art
+        if type(flip)~="boolean" then flip=E.DefaultMirror(art,side) end
+        result[side].flip=flip
     end
     local p=type(value.pair)=="table" and value.pair or {}
-    result.pair={linked=p.linked==true,size=number(p.size,100,50,200),
+    local fallback=selection.pair or {}
+    local art,swapped,flip=p.art,p.swapped,p.flip
+    if not E.PairByArt[art] then art,swapped,flip=fallback.art,fallback.swapped,fallback.flip end
+    if not E.PairByArt[art] then art=result.left.art end
+    if selection.mode=="corner" and art=="default" then art="hidden" end
+    local row=E.PairByArt[art]
+    result.pair={art=row[1]=="default" and art or row[1],swapped=swapped==true,flip=flip==true,
+        linked=p.linked==true,size=number(p.size,100,50,200),
         x=number(p.x,0,-10000,10000),y=number(p.y,0,-200,200),
         separation=number(p.separation,0,0,2000),artBottom=p.artBottom~=false,
         separationInitialized=separationInitialized(p),
@@ -626,13 +645,17 @@ function E.CapturePosition(db)
     return E.NormalizePosition(db)
 end
 function E.RestorePosition(db,profile)
-    profile=E.NormalizePosition(profile)
+    profile=E.NormalizePosition(profile,db)
     for _,side in ipairs({"left","right"}) do
         for _,key in ipairs(E.SidePositionFields) do db[side][key]=profile[side][key] end
     end
     for _,key in ipairs(E.PairPositionFields) do db.pair[key]=profile.pair[key] end
     if db.mode=="corner" then db.pair.centerX=nil end
-    E.SyncPair(db)
+    if db.pair.linked then
+        E.SyncPair(db)
+    else
+        for _,side in ipairs({"left","right"}) do db[side]=E.GetEffectConfig(db[side]) end
+    end
 end
 function E.SyncPair(db)
     local p=db.pair
