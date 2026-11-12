@@ -1,0 +1,62 @@
+name: CurseForge packaging
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+permissions: {}
+
+jobs:
+  package:
+    if: github.event.created && !github.event.deleted
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Trigger the CurseForge packager
+        env:
+          CURSEFORGE_TOKEN: ${{ secrets.CURSEFORGE_PACKAGER_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          import urllib.error
+          import urllib.parse
+          import urllib.request
+          import uuid
+          from pathlib import Path
+
+          event = Path(os.environ['GITHUB_EVENT_PATH']).read_bytes()
+          push = json.loads(event)
+          if not re.fullmatch(r'refs/tags/v[0-9]+\.[0-9]+\.[0-9]+', push['ref']):
+              raise SystemExit('Expected a version tag such as v1.4.4.')
+          if not push.get('created') or push.get('deleted'):
+              raise SystemExit('Expected a newly created tag.')
+
+          token = os.environ.get('CURSEFORGE_TOKEN')
+          if not token:
+              raise SystemExit('CURSEFORGE_PACKAGER_TOKEN is missing.')
+
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, req, fp, code, msg, headers, newurl):
+                  return None
+
+          query = urllib.parse.urlencode({'token': token})
+          request = urllib.request.Request(
+              f'https://www.curseforge.com/api/projects/1793331/package?{query}',
+              data=urllib.parse.urlencode({'payload': event}).encode(),
+              headers={
+                  'Content-Type': 'application/x-www-form-urlencoded',
+                  'X-GitHub-Event': 'push',
+                  'X-GitHub-Delivery': str(uuid.uuid4()),
+              },
+          )
+          try:
+              with urllib.request.build_opener(NoRedirect()).open(request, timeout=30) as response:
+                  print(f'CurseForge accepted the packaging request (HTTP {response.status}).')
+          except urllib.error.HTTPError as error:
+              raise SystemExit(f'CurseForge returned HTTP {error.code}.') from None
+          except (OSError, ValueError):
+              raise SystemExit('Could not reach the CurseForge packager.') from None
+          PY

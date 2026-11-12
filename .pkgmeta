@@ -1,0 +1,13 @@
+package-as: EndCapper
+enable-nolib-creation: no
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown
+ignore:
+  - tests
+  - tools
+  - webhook.md
+  - Media/ArcaneCrystal.tga
+  - Media/ArcaneSigil.tga
+  - Media/SoulboundCrystal.tga
+  - Media/WorgenWolf.tga

@@ -8,4 +8,5 @@
 /preview*.html
 /tools/node_modules/
 /tools/cache/
+/webhook.md
 *.log
