@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.4 — 2026-11-12
+
+- Added **Dominos** and **Bartender4** support in both End Cap and Corner Cap modes. Custom artwork now uses EndCapper's own frames and can be dragged into place beside replacement bars.
+- Added **Hide Bartender Art Bar** when Bartender4's Blizzard Art module is detected. It applies to both modes and preserves Bartender4's own profile. The art remains visible while Bartender4's bars are unlocked for editing.
+- Custom and Hidden End Caps suppress Blizzard's stock artwork where present. Default hands control back to Blizzard.
+- End Caps without saved positions start around the screen centre. Saved positions and linked spacing carry over.
+
 ## 1.4.3 — 2026-11-12
 
 - Added **Banshee / High General**, a matching Sylvanas sister pair, bringing the collection to **28 custom designs**.

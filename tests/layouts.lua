@@ -22,7 +22,7 @@ E.Begin();E.draft.pair.separation=1900
 info.activeLayout=5;allowed,changed=E.ReconcilePositionLayout();local solo=E.activePositionLayout
 assert(allowed and changed and solo~=raid and not E.draft)
 assert(EndCapperDB.positionProfiles[raid].pair.separation==800,'unapplied preview must not leak into outgoing profile')
-assert(not EndCapperDB.pair.linked and not EndCapperDB.left.frameBottom and not EndCapperDB.left.frameX)
+assert(not EndCapperDB.pair.linked and EndCapperDB.left.frameBottom and not EndCapperDB.left.frameX)
 EndCapperDB.left.x=22;EndCapperDB.left.y=35;EndCapperDB.left.size=135;EndCapperDB.left.frameBottom=true;EndCapperDB.left.frameX=900
 E.SavePositionProfile()
 info.activeLayout=4;E.ReconcilePositionLayout()

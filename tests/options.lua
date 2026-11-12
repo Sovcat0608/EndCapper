@@ -12,6 +12,7 @@ local function widget()
     end
     function w:EnableMouse(v) self.mouse=v end
     function w:SetSize(x,y) self.width,self.height=x,y end
+    function w:SetHeight(y) self.height=y end
     function w:SetPoint(...) self.point={...} end
     function w:ClearAllPoints() self.point=nil end
     function w:SetText(v) self.text=v end
@@ -442,7 +443,9 @@ p.sliders.y:SetValue(30);p.resetSide:Click();assert(E.draft.pair.y==0 and E.draf
 p.link:Click();E.draft.left.frameBottom=false;p.sliders.y:SetValue(30);p.resetSide:Click()
 assert(E.draft.left.y==0 and E.draft.left.frameBottom and E.draft.left.artBottom)
 p:Hide()
-assert(p.controls.point[3]+p.snapBottom.point[3]-p.snapBottom.height>p.resetSide.point[3],'Snap control stays above footer buttons')
+local footerTop=p.resetSide.point[3]+p.resetSide.height-p.height
+assert(p.resetSide.point[1]=='BOTTOMLEFT' and p.controls.point[3]+p.snapBottom.point[3]-p.snapBottom.height>footerTop,
+    'Snap control stays above footer buttons')
 print('PASS: Snap bottom and Reset handlers in both modes, targeted versus paired refresh, X preservation and Cancel')
 
 EndCapperDB=E.Normalize(nil);E.OpenOptions('left')
@@ -637,6 +640,23 @@ p.showLauncher:Click();assert(not E.draft.launcher.shown and p.save.enabled)
 p.save:Click();assert(not EndCapperDB.launcher.shown and not p.save.enabled)
 p.showLauncher:Click();assert(E.draft.launcher.shown and p.save.enabled)
 p:Hide();assert(not EndCapperDB.launcher.shown)
+assert(not p.hideBartenderArt:IsShown() and p.height==614)
+E.HasBartenderArtBar=function() return true end
+E.OpenOptions("left")
+assert(p.hideBartenderArt:IsShown() and p.height==640 and not p.hideBartenderArt:GetChecked())
+p.hideBartenderArt:Click()
+assert(E.draft.hideBartenderArt and p.save.enabled)
+p.modeTabs.corner:Click()
+assert(p.hideBartenderArt:GetChecked() and p.save.enabled)
+p.save:Click()
+assert(EndCapperDB.hideBartenderArt and not p.save.enabled)
+p.hideBartenderArt:Click();p:Hide()
+assert(EndCapperDB.hideBartenderArt)
+E.HasBartenderArtBar=nil
+E.OpenOptions("left")
+assert(not p.hideBartenderArt:IsShown() and p.height==614)
+p:Hide()
+print('PASS: conditional Bartender checkbox, shared setting, Save and Cancel')
 local oldDialog=EditModeSystemSettingsDialog
 local oldHook=hooksecurefunc
 local dialog=widget()

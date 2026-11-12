@@ -8,9 +8,9 @@ local function label(parent, text, x, y, font)
     l:SetPoint("TOPLEFT", x, y); l:SetText(text)
     return l
 end
-local function button(parent, text, x, y, width, callback)
+local function button(parent, text, x, y, width, callback, anchor)
     local b = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
-    b:SetSize(width, 24); b:SetPoint("TOPLEFT", x, y); b:SetText(text)
+    b:SetSize(width, 24); b:SetPoint(anchor or "TOPLEFT", x, y); b:SetText(text)
     b:SetScript("OnClick", callback)
     return b
 end
@@ -69,6 +69,13 @@ function E.RefreshOptions()
     end
     p.enableMode:SetChecked(E.draft.enabled)
     p.showLauncher:SetChecked(E.draft.launcher.shown)
+    local hasBartenderArt=E.HasBartenderArtBar and E.HasBartenderArtBar() or false
+    p.hideBartenderArt:SetShown(hasBartenderArt)
+    p.hideBartenderArt:SetChecked(E.draft.hideBartenderArt)
+    p:SetHeight(hasBartenderArt and 640 or 614)
+    if p.SetScale and UIParent.GetHeight then
+        p:SetScale(math.min(1,math.max(0.5,(UIParent:GetHeight()-40)/p:GetHeight())))
+    end
     p.link:SetChecked(linked);p.swap:SetShown(linked);p.swap:SetChecked(shared.swapped)
     p.resetSide:SetText(linked and "Reset pair" or "Reset side")
     local movable=E.artworkByID[c.art].path~=nil
@@ -372,7 +379,16 @@ local function makePanel()
     p.snapCenter=button(controls,"Snap to center",162,-287,142,function() setPairX(0) end)
     label(p,"Save changes in both tabs.",20,-532,"GameFontHighlightSmall")
     p.positionNote=label(p,"Offsets move artwork. Drag the box to move the cap.",20,-549,"GameFontHighlightSmall")
-    p.resetSide=button(p,"Reset side",20,-575,96,function()
+    p.hideBartenderArt=CreateFrame("CheckButton",nil,p,"UICheckButtonTemplate")
+    p.hideBartenderArt:SetPoint("TOPLEFT",15,-563)
+    label(p.hideBartenderArt,"Hide Bartender Art Bar",33,-9)
+    p.hideBartenderArt:Hide()
+    p.hideBartenderArt:SetScript("OnClick",function(self)
+        if not E.draft or InCombatLockdown() then return end
+        E.draft.hideBartenderArt=self:GetChecked() and true or false
+        preview()
+    end)
+    p.resetSide=button(p,"Reset side",20,15,96,function()
         if E.draft.pair.linked then
             local pair=E.draft.pair;pair.size=100;pair.y=0;pair.flip=false;pair.swapped=false
             E.SetPairOffset(E.draft,0)
@@ -382,12 +398,12 @@ local function makePanel()
         snapActiveMode()
         if E.draft.pair.linked then preview() else preview(side) end
         E.RefreshOptions()
-    end)
-    button(p,"Cancel",122,-575,92,function() p:Hide() end)
-    p.save=button(p,"Save",220,-575,100,function()
+    end,"BOTTOMLEFT")
+    button(p,"Cancel",122,15,92,function() p:Hide() end,"BOTTOMLEFT")
+    p.save=button(p,"Save",220,15,100,function()
         if InCombatLockdown() or not E.HasChanges() then return end
         E.Commit(); E.Begin(); preview(nil,true); E.RefreshOptions()
-    end)
+    end,"BOTTOMLEFT")
     local dev=CreateFrame("Frame", nil, p, "BackdropTemplate")
     p.dev=dev; dev:Hide(); dev:SetSize(330, 453)
     dev:SetPoint("TOPLEFT", p, "TOPRIGHT", 6, 0); dev:SetClampedToScreen(true); dev:EnableMouse(true)
@@ -517,9 +533,6 @@ function E.OpenOptions(selectedSide)
     -- Resolve the initial placement before starting the editable draft.
     if E.ReconcilePositionLayout then E.ReconcilePositionLayout() end
     if not E.panel then makePanel() end
-    if E.panel.SetScale and UIParent.GetHeight then
-        E.panel:SetScale(math.min(1,math.max(0.5,(UIParent:GetHeight()-40)/E.panel:GetHeight())))
-    end
     if selectedSide then side = selectedSide end
     E.Begin()
     if not E.panel:IsShown() then

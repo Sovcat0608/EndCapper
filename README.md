@@ -1,6 +1,6 @@
 # EndCapper
 
-**Version 1.4.3 for World of Warcraft: Forever.**
+**Version 1.4.4 for World of Warcraft: Forever.**
 
 Decorate your action bars and screen corners with 28 fantasy designs. Mix and match artwork or link matching pairs, then adjust placement, size and mirroring from EndCapper’s own panel.
 
@@ -23,7 +23,7 @@ When upgrading, replace the old addon folder with the release folder. Keep your 
 
 **Snap to bottom** aligns the drag box with the screen bottom, then aligns the artwork's measured crop line to that edge. It targets the selected side when unlinked and both sides when linked. This is the default alignment; **Reset side / Reset pair** reapplies it. Y = 0 uses the crop line as its bottom reference, and positive Y lifts the art. Existing explicit Y values remain offsets until Snap or Reset sets them to zero. X offsets keep their existing meaning.
 
-First-link separation starts near native cap spacing. Your adjusted separation is retained when unlinking and relinking, including a deliberate zero. Reset Pair restores native-based spacing for the reset artwork size.
+End Caps without saved positions start on either side of the screen centre. First-link separation uses that spacing and the artwork widths. Your adjusted separation is retained when unlinking and relinking, including a deliberate zero. Reset Pair restores the starting spacing for the reset artwork size.
 
 Dragging upward releases bottom snap. Artwork offsets move the artwork within its drag frame. Entering combat discards unsaved EndCapper previews.
 
@@ -81,8 +81,9 @@ With **Flip horizontally** unchecked, Lordaeron, Shadowfang, Stormhorn, Felwing,
 
 ## Compatibility and troubleshooting
 
-- Designed for Forever's default mouse-and-keyboard action bar (interface 16001).
-- Replacement action-bar addons and gamepad layouts are not supported. Options are English only.
+- Designed for Forever's mouse-and-keyboard UI (interface 16001). Custom End Caps and Corner Caps use screen anchors and can be positioned manually beside Dominos and Bartender4 bars.
+- **Hide Bartender Art Bar** appears when Bartender4's Blizzard Art module is available. It applies to both tabs. Bartender's art remains visible while its bars are unlocked for editing and hides again when locked.
+- Gamepad layouts are not supported. Options are English only.
 - Artwork selections, mirroring, linked pairs and placement are saved per layout for both End Caps and Corner Caps.
 - Editing is available outside combat. No third-party libraries are required.
 - Native effects may need time to load and refresh automatically when loading completes. Use `/ecap status` if one remains absent; saving changed settings or showing the cap again can recover a late-loaded model.

@@ -44,11 +44,6 @@ function E.SavePositionProfile(key)
     end
 end
 
-local function defaultPosition(db)
-    if db.mode=="corner" then return E.NormalizePosition({},db) end
-    return E.NormalizePosition({left={frameBottom=false},right={frameBottom=false}},db)
-end
-
 function E.ReconcilePositionLayout()
     if E.switchingPositionLayout then return false end
     if not C_EditMode or not C_EditMode.GetLayouts then E.positionLayoutUnavailable=true;return true,false end
@@ -117,12 +112,11 @@ function E.ReconcilePositionLayout()
         local profile=profiles[key]
         if not profile then
             if (not old and next(profiles)==nil) or created then profile=E.CapturePosition(db)
-            else profile=defaultPosition(db) end
+            else profile=E.NormalizePosition({},db) end
             profiles[key]=profile
         end
         E.RestorePosition(db,profile)
     end
-    if E.CaptureNativePairSpacing then E.CaptureNativePairSpacing() end
     E.activePositionLayout=key;E.positionLayoutKeys=keys;E.positionLayoutIndex=index
     E.switchingPositionLayout=true
     if old and E.panel then E.panel:Hide() end

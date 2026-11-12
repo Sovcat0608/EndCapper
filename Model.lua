@@ -621,6 +621,7 @@ function E.Normalize(value,skipProfiles)
     local launcher=type(value.launcher)=="table" and value.launcher or {}
     result.launcher={shown=launcher.shown~=false,
         x=number(launcher.x,nil,0,10000),y=number(launcher.y,nil,0,10000)}
+    result.hideBartenderArt=value.hideBartenderArt==true
     if type(value.otherMode)=="table" then
         result.otherMode=normalizeMode(value.otherMode,otherMode,value.version,skipProfiles)
     else
@@ -751,8 +752,7 @@ function E.LinkPair(db,side,enabled)
     if db.mode~="corner" and db.pair.linked and not db.pair.separationInitialized then E.ResetPairSeparation(db);E.SyncPair(db) end
 end
 function E.ResetPairSeparation(db)
-    -- The runtime supplies native geometry; 600 is an approximation only
-    -- when frame positions are not available yet.
+    -- The renderer derives the default gap from the screen and artwork widths.
     db.pair.separation=number(E.GetDefaultPairSeparation and E.GetDefaultPairSeparation(db),600,0,2000)
     db.pair.separationInitialized=true
 end
@@ -826,6 +826,7 @@ end
 function E.HasChanges()
     if not E.draft or not EndCapperDB then return false end
     local draft,saved=E.Normalize(E.draft,true),E.Normalize(EndCapperDB,true)
+    if draft.hideBartenderArt~=saved.hideBartenderArt then return true end
     if not sameSettings(draft.launcher,saved.launcher) then return true end
     local savedTab,savedOther=saved,saved.otherMode
     if draft.mode~=saved.mode then savedTab,savedOther=savedOther,savedTab end

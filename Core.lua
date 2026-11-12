@@ -13,15 +13,6 @@ local function frameScreenPosition(frame)
     end
 end
 
-function E.CaptureNativePairSpacing()
-    for _,entry in pairs(E.caps) do
-        entry.nativeX,entry.nativeY=frameScreenPosition(entry.nativeFrame)
-    end
-    local left,right=E.caps.left,E.caps.right
-    local x1,x2=left and left.nativeX,right and right.nativeX
-    E.nativePairSpan=x1 and x2 and x2>x1 and x2-x1 or nil
-end
-
 local function capsForMode(mode)
     return mode=="corner" and E.cornerCaps or E.caps
 end
@@ -30,16 +21,22 @@ local function inward(side)
     return side=="left" and 1 or -1
 end
 
-local function halfWidth(entry,config)
-    local artwork=E.artworkByID[config.art]
-    local width=artwork.width or entry.nativeFrame:GetWidth()
-    return width*config.size/200*entry.frame:GetEffectiveScale()/UIParent:GetEffectiveScale()
+local function halfWidth(side,config)
+    local entry=E.caps[side]
+    local scale=entry and entry.frame:GetEffectiveScale()/UIParent:GetEffectiveScale() or 1
+    return (E.artworkByID[config.art].width or 154)*config.size*scale/200
+end
+
+local function defaultPairSpan()
+    return math.min(760, UIParent:GetWidth()*0.7)
+end
+
+local function defaultCapX(side)
+    return (UIParent:GetWidth()-inward(side)*defaultPairSpan())/2
 end
 
 function E.GetDefaultPairSeparation(db)
-    local left,right=E.caps.left,E.caps.right
-    if not E.nativePairSpan or not left or not right then return end
-    local gap=E.nativePairSpan-halfWidth(left,db.left)-halfWidth(right,db.right)
+    local gap=defaultPairSpan()-halfWidth("left",db.left)-halfWidth("right",db.right)
     return math.max(0,math.min(2000,math.floor(gap/2+0.5)*2))
 end
 
@@ -54,36 +51,31 @@ end
 
 function E.GetPairOffset(db)
     if not db.pair.centerX then return db.pair.x end
-    local left,right=E.caps.left,E.caps.right
-    if not left or not right then return db.pair.x end
-    return pairCenter(db,halfWidth(left,db.left),halfWidth(right,db.right))-UIParent:GetWidth()/2
+    return pairCenter(db,halfWidth("left",db.left),halfWidth("right",db.right))-UIParent:GetWidth()/2
 end
 
-local function capX(entry,db)
-    local left,right=E.caps.left,E.caps.right
-    if db.pair.linked and left and right then
-        local leftHalf,rightHalf=halfWidth(left,db.left),halfWidth(right,db.right)
+local function capX(side,db)
+    if db.pair.linked then
+        local leftHalf,rightHalf=halfWidth("left",db.left),halfWidth("right",db.right)
         local distance=(leftHalf+rightHalf+db.pair.separation)/2
-        return pairCenter(db,leftHalf,rightHalf)+(entry.side=="left" and -distance or distance)
+        return pairCenter(db,leftHalf,rightHalf)-inward(side)*distance
     end
-    return db[entry.side].frameX or entry.nativeX
+    return db[side].frameX or defaultCapX(side)
 end
 
 function E.GetLinkOffset(db)
-    local left,right=E.caps.left,E.caps.right
-    if not left or not right then return end
-    local x1=E.artworkByID[db.left.art].path and capX(left,db) or left.nativeX
-    local x2=E.artworkByID[db.right.art].path and capX(right,db) or right.nativeX
-    if x1 and x2 then return (x1+x2-UIParent:GetWidth())/2 end
+    local x1=E.artworkByID[db.left.art].path and capX("left",db) or defaultCapX("left")
+    local x2=E.artworkByID[db.right.art].path and capX("right",db) or defaultCapX("right")
+    return (x1+x2-UIParent:GetWidth())/2
 end
 
 function E.RememberPairPositions(db)
-    for side,entry in pairs(capsForMode(db.mode)) do
+    for _,side in ipairs({"left","right"}) do
         local c=db[side]
         if E.artworkByID[c.art].path then
             if db.mode=="corner" then
                 if db.pair.x~=0 then c.frameX=(c.frameX or 0)+db.pair.x end
-            else c.frameX=capX(entry,db) end
+            else c.frameX=capX(side,db) end
         end
     end
 end
@@ -99,14 +91,11 @@ local function placeCap(entry,db)
         frame:SetPoint(anchor,UIParent,anchor,inward(entry.side)*x*scale,y*scale)
         return
     end
-    local x=capX(entry,db)
-    local y=c.frameBottom and frame:GetHeight()/(2*scale) or c.frameY or entry.nativeY
+    local x=capX(entry.side,db)
+    local bottomCenter=frame:GetHeight()/(2*scale)
+    local y=not c.frameBottom and c.frameY or bottomCenter
     frame:ClearAllPoints()
-    if x and y then
-        frame:SetPoint("CENTER",UIParent,"BOTTOMLEFT",x*scale,y*scale)
-    else
-        frame:SetPoint("CENTER",entry.nativeFrame,"CENTER")
-    end
+    frame:SetPoint("CENTER",UIParent,"BOTTOMLEFT",x*scale,y*scale)
 end
 
 local activeDrag
@@ -265,7 +254,7 @@ local function updateLauncher(config)
 end
 
 local function updateNativeSelection(entry,suppressed)
-    local selection=entry.nativeFrame.Selection
+    local selection=entry.nativeFrame and entry.nativeFrame.Selection
     if not selection then return end
     local previous=entry.nativeSelection
     if suppressed and not previous then
@@ -278,6 +267,17 @@ local function updateNativeSelection(entry,suppressed)
         selection:EnableMouse(previous.mouse)
         entry.nativeSelection=nil
     end
+end
+
+local function suppressNativeCap(entry,suppress)
+    if not entry.native then return end
+    if suppress or entry.suppress then
+        entry.settingAlpha=true
+        entry.native:SetAlpha(suppress and 0 or entry.nativeAlpha)
+        entry.settingAlpha=false
+    end
+    updateNativeSelection(entry,suppress)
+    entry.suppress=suppress
 end
 
 local function renderCap(entry,db)
@@ -331,15 +331,71 @@ local function renderCap(entry,db)
     E.UpdateEffects(entry,effect)
 end
 
+local function bartenderArtModule()
+    if Bartender4 and type(Bartender4.GetModule)=="function" then
+        return Bartender4:GetModule("BlizzardArt",true)
+    end
+end
+
+function E.HasBartenderArtBar()
+    return bartenderArtModule()~=nil
+end
+
+local observedArtModule, bartenderArt
+
+local function writeBartenderAlpha(art,alpha)
+    if art.frame:GetAlpha()==alpha then return end
+    art.writing=true
+    art.frame:SetAlpha(alpha)
+    art.writing=false
+end
+
+local function updateBartenderArt()
+    if InCombatLockdown() then E.pending=true;return end
+    local module=bartenderArtModule()
+    if module~=observedArtModule then
+        observedArtModule=module
+        if module and type(module.OnEnable)=="function" then
+            hooksecurefunc(module,"OnEnable",function()
+                if module==observedArtModule then updateBartenderArt() end
+            end)
+        end
+    end
+    local bar=module and module.bar
+    if bartenderArt and bartenderArt.frame~=bar then
+        if bartenderArt.hidden then writeBartenderAlpha(bartenderArt,bartenderArt.alpha) end
+        bartenderArt=nil
+    end
+    if not bar then return end
+    local requested=E.Config().hideBartenderArt
+    if not requested and not bartenderArt then return end
+    if not bartenderArt then
+        local art={frame=bar,alpha=bar:GetAlpha()}
+        bartenderArt=art
+        hooksecurefunc(bar,"SetAlpha",function(_,alpha)
+            if bartenderArt~=art or art.writing then return end
+            art.alpha=alpha
+            if art.hidden then
+                if InCombatLockdown() then E.pending=true
+                else writeBartenderAlpha(art,0) end
+            end
+        end)
+        if bar.overlay then
+            bar.overlay:HookScript("OnShow",updateBartenderArt)
+            bar.overlay:HookScript("OnHide",updateBartenderArt)
+        end
+    end
+    -- The overlay is interactive while Bartender's bars are unlocked.
+    local hide=requested and not (bar.overlay and bar.overlay:IsShown())
+    local wasHidden=bartenderArt.hidden
+    bartenderArt.hidden=hide
+    if hide or wasHidden then writeBartenderAlpha(bartenderArt,hide and 0 or bartenderArt.alpha) end
+end
+
 function E.Apply(targetSide,targetMode)
     if not E.ready then return end
     if InCombatLockdown() then E.pending=true;return end
     E.pending=false
-    if E.refreshNativePositions then
-        E.refreshNativePositions=nil
-        E.CaptureNativePairSpacing()
-        targetSide,targetMode=nil,nil
-    end
     if E.ReconcilePositionLayout then
         local allowed,changed=E.ReconcilePositionLayout()
         if not allowed then return end
@@ -352,25 +408,18 @@ function E.Apply(targetSide,targetMode)
     for side,entry in pairs(E.caps) do
         if not targetSide or side==targetSide then
             if not targetMode or targetMode=="end" then
-                local suppress=endMode.enabled and endMode[side].art~="default"
-                if suppress or entry.suppress then
-                    entry.settingAlpha=true
-                    entry.native:SetAlpha(suppress and 0 or entry.alpha)
-                    entry.settingAlpha=false
-                end
-                updateNativeSelection(entry,suppress)
-                entry.suppress=suppress
+                suppressNativeCap(entry,endMode.enabled and endMode[side].art~="default")
                 renderCap(entry,endMode)
             end
             local corner=E.cornerCaps[side]
             if (not targetMode or targetMode=="corner") and (cornerMode.enabled or corner.owned) then
-                corner.alpha=entry.alpha
                 renderCap(corner,cornerMode)
             end
         end
     end
     if E.DismissNativeCapSettings then E.DismissNativeCapSettings() end
     updateLauncher(db.launcher)
+    updateBartenderArt()
     E.UpdateDragHandles()
 end
 
@@ -388,18 +437,16 @@ function E.Schedule(side)
     end)
 end
 
-local function createCap(side,cap,mode)
-    -- Both sets inherit visibility and scale. Their anchors belong to the addon.
-    local frame=CreateFrame("Frame",nil,cap)
+local function createCap(side,mode)
+    local frame=CreateFrame("Frame",nil,E.capRoot)
     frame:EnableMouse(false)
-    frame:SetFrameLevel(cap:GetFrameLevel())
+    frame:SetFrameLevel(10)
     frame:Hide()
     local artLayer=CreateFrame("Frame",nil,frame)
     artLayer:SetAllPoints(frame);artLayer:EnableMouse(false)
     artLayer:SetFrameLevel(frame:GetFrameLevel()+2)
     local art=artLayer:CreateTexture(nil,"OVERLAY",nil,6)
-    local native=cap.Texture
-    local entry={side=side,mode=mode,frame=frame,nativeFrame=cap,artLayer=artLayer,native=native,art=art,alpha=native:GetAlpha()}
+    local entry={side=side,mode=mode,frame=frame,artLayer=artLayer,art=art,alpha=1}
     entry.handle=createDragHandle(frame,function(handle) startCapDrag(entry,handle) end)
     entry.handle:SetScript("OnMouseDown",function(_,button)
         if button=="LeftButton" and E.SelectCapSide then E.SelectCapSide(side) end
@@ -407,31 +454,50 @@ local function createCap(side,cap,mode)
     return entry
 end
 
-function E.Attach()
-    if not E.ready or InCombatLockdown() then E.pending = true; return end
+local function bindNativeCaps()
     local root = MainActionBar and MainActionBar.EndCaps
-    if not root then return end
-    local attached=false
-    for _, side in ipairs({"left", "right"}) do
-        local cap = root[side == "left" and "LeftEndCap" or "RightEndCap"]
-        if cap and cap.Texture and not E.caps[side] then
-            local entry=createCap(side,cap,"end")
-            E.caps[side]=entry
-            E.cornerCaps[side]=createCap(side,cap,"corner")
-            attached=true
-            cap:HookScript("OnShow",function()
-                if not entry.nativeX then E.refreshNativePositions=true;E.Schedule() end
-            end)
-            hooksecurefunc(entry.native,"SetAlpha",function(_,alpha)
-                if entry.settingAlpha then return end
-                entry.alpha=alpha
-                if entry.suppress or E.cornerCaps[side].owned then E.Schedule(side) end
-            end)
+    local changed=false
+    for side,entry in pairs(E.caps) do
+        local cap = root and root[side == "left" and "LeftEndCap" or "RightEndCap"]
+        local texture=cap and cap.Texture
+        if texture~=entry.native or (texture and cap~=entry.nativeFrame) then
+            suppressNativeCap(entry,false)
+            entry.nativeFrame=texture and cap or nil
+            entry.native=texture
+            entry.nativeAlpha=texture and texture:GetAlpha() or nil
+            changed=true
+            if texture then
+                entry.nativeHooks=entry.nativeHooks or setmetatable({}, {__mode="k"})
+                if not entry.nativeHooks[texture] then
+                    entry.nativeHooks[texture]=true
+                    hooksecurefunc(texture,"SetAlpha",function(region,alpha)
+                        if entry.native~=region or entry.settingAlpha then return end
+                        entry.nativeAlpha=alpha
+                        if entry.suppress then E.Schedule(entry.side) end
+                    end)
+                end
+            end
         end
     end
-    if attached then E.CaptureNativePairSpacing() end
-    E.Apply()
-    if E.AttachOptions then E.AttachOptions() end
+    return changed
+end
+
+function E.Attach(onlyIfChanged)
+    if not E.ready or InCombatLockdown() then E.pending = true; return end
+    local created=not E.capRoot
+    if created then
+        E.capRoot=CreateFrame("Frame",nil,UIParent)
+        if RegisterStateDriver then
+            RegisterStateDriver(E.capRoot,"visibility","[petbattle][overridebar][vehicleui] hide; show")
+        end
+        for _,side in ipairs({"left","right"}) do
+            E.caps[side]=createCap(side,"end")
+            E.cornerCaps[side]=createCap(side,"corner")
+        end
+    end
+    local changed=bindNativeCaps()
+    if created or changed or not onlyIfChanged then E.Apply() end
+    if E.AttachOptions and not (E.dialogHooked and E.registryHooked) then E.AttachOptions() end
 end
 
 events:RegisterEvent("ADDON_LOADED")
@@ -470,10 +536,9 @@ events:SetScript("OnEvent", function(_, event, name)
         end
     end
     if not E.ready then return end
-    if event=="ADDON_LOADED" and name~=addonName and E.caps.left and E.caps.right then
-        if E.AttachOptions and not (E.dialogHooked and E.registryHooked) and not InCombatLockdown() then
-            E.AttachOptions()
-        end
+    if event=="ADDON_LOADED" and name~=addonName then
+        E.Attach(name~="Bartender4")
+        if name=="Bartender4" and not InCombatLockdown() and E.RefreshOptions then E.RefreshOptions() end
         return
     end
     if event=="PLAYER_LOGOUT" then
@@ -484,7 +549,6 @@ events:SetScript("OnEvent", function(_, event, name)
         -- The native manager must finish applying its own anchors first.
         E.Schedule();return
     end
-    if event=="UI_SCALE_CHANGED" or event=="DISPLAY_SIZE_CHANGED" then E.refreshNativePositions=true end
     if event == "PLAYER_REGEN_DISABLED" then
         if E.panel then E.panel:Hide() end
     else

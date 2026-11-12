@@ -151,7 +151,8 @@ assert(updates.left==1 and updates.right==1,'do not lose the second queued side'
 updates.left=0;updates.right=0;E.Schedule('left');E.Schedule();advance(0)
 assert(updates.left==1 and updates.right==1,'global refresh includes both caps')
 updates.left=0;updates.right=0;right.native:SetAlpha(0.6);advance(0)
-assert(updates.left==0 and updates.right==1 and right.alpha==0.6,'native alpha hook belongs to one cap')
+assert(updates.left==0 and updates.right==1 and right.nativeAlpha==0.6 and right.alpha==1,
+    'native alpha hook suppresses only the affected stock cap')
 updates.left=0;updates.right=0
 local moving=0
 GetCursorPosition=function() return moving,0 end

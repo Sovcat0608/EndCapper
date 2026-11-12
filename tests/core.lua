@@ -137,19 +137,29 @@ C_Timer = {After = function(_, fn) queue[#queue + 1] = fn end}
 SlashCmdList = {}
 MainActionBar = nil
 EndCapperDB = nil
+local previousDriver=RegisterStateDriver
+local visibilityDriver
+function RegisterStateDriver(frame,state,condition)
+    visibilityDriver={frame,state,condition}
+end
 assert(loadfile("Model.lua"))("EndCapper", E)
 assert(loadfile("Layouts.lua"))("EndCapper", E)
 assert(loadfile("Clipping.lua"))("EndCapper", E)
 assert(loadfile("Effects.lua"))("EndCapper", E)
 assert(loadfile("Core.lua"))("EndCapper", E)
 eventFrame:event("ADDON_LOADED", "EndCapper")
-assert(E.ready and not E.caps.left, "SavedVariables may load before native frames")
+assert(E.ready and E.caps.left.frame:IsVisible() and E.caps.right.frame:IsVisible(),
+    "standalone artwork renders before Blizzard creates any cap frames")
+assert(visibilityDriver[1]==E.capRoot and visibilityDriver[2]=="visibility")
+assert(visibilityDriver[3]=="[petbattle][overridebar][vehicleui] hide; show")
+RegisterStateDriver=previousDriver
+local left,right=E.caps.left,E.caps.right
 MainActionBar = {EndCaps = {LeftEndCap = cap()}}
 eventFrame:event("PLAYER_LOGIN")
-assert(E.caps.left and not E.caps.right)
+assert(E.caps.left==left and E.caps.right==right and left.native and not right.native)
 MainActionBar.EndCaps.RightEndCap=cap()
 eventFrame:event("ADDON_LOADED","LateNativeFrames")
-local left, right = E.caps.left, E.caps.right
+assert(E.caps.left==left and E.caps.right==right and right.native)
 local apply=E.Apply
 E.Apply=function() error("unrelated addon load must not refresh attached caps") end
 local optionsAttachments=0
@@ -169,7 +179,7 @@ assert(not left.effects and not right.effects, "rebuilt Undead allocates no cust
 local selection=left.nativeFrame.Selection
 local nativePoints=left.nativeFrame.points
 local function assertDragFrame(c)
-    assert(c.handle.allPoints==c.frame and c.frame.parent==c.nativeFrame)
+    assert(c.handle.allPoints==c.frame and c.frame.parent==E.capRoot and E.capRoot.parent==UIParent)
     assert(c.frame.width==c.art.width and c.frame.height==c.art.height)
     assert(c.nativeFrame.Selection.width==154 and c.nativeFrame.Selection.height==95)
 end
@@ -238,7 +248,7 @@ local function flush()
     assert(#queue == 0, "own alpha updates must not schedule a loop")
 end
 left.native:SetAlpha(0.4); flush()
-assert(left.native.alpha == 0 and left.art.alpha == 0.4)
+assert(left.native.alpha == 0 and left.art.alpha == 1,"Blizzard alpha does not affect custom art")
 E.Begin(); E.draft.left = {art="default", flip=false, size=100, x=0, y=0}; E.Commit(); E.Apply()
 assert(left.native.alpha == 0.4 and not left.art.shown, "restore original art and alpha")
 assert(selection.width==154 and selection.height==95 and #selection.points==2, "native selection anchors restored exactly")
@@ -362,7 +372,7 @@ for _,art in ipairs(E.artworks) do
     if art.path then
         for _,size in ipairs({50,100,200}) do
             E.draft.left.art=art.id;E.draft.left.size=size;E.SnapToBottom(E.draft,'left');E.Apply('left');floorCheck(left,E.draft.left)
-            assert(left.frame.cx==300);assertDragFrame(left)
+            assert(left.frame.cx==620);assertDragFrame(left)
         end
     end
 end
@@ -373,20 +383,20 @@ combat=false;E.Apply();floorCheck(left,E.draft.left)
 E.Cancel();EndCapperDB=E.Normalize({left={art="wolf"},right={art="lordaeron"}})
 E.Begin();E.Apply();floorCheck(left,E.draft.left)
 drag(left,70,150)
-assert(left.frame.cx==370 and left.frame.bottom==150 and not E.draft.left.frameBottom)
+assert(left.frame.cx==690 and left.frame.bottom==150 and not E.draft.left.frameBottom)
 assert(EndCapperDB.left.frameBottom and not EndCapperDB.left.frameY and canSave)
 left.nativeFrame:SetPoint('BOTTOM',UIParent,'BOTTOMLEFT',350,140)
 eventFrame:event('EDIT_MODE_LAYOUTS_UPDATED');flush()
-assert(left.frame.cx==370 and left.frame.bottom==150,"native anchor updates cannot move the preview")
-E.Cancel();E.Apply();floorCheck(left,EndCapperDB.left);assert(left.frame.cx==300 and not left.handle.shown)
+assert(left.frame.cx==690 and left.frame.bottom==150,"native anchor updates cannot move the preview")
+E.Cancel();E.Apply();floorCheck(left,EndCapperDB.left);assert(left.frame.cx==620 and not left.handle.shown)
 E.Begin();E.Apply();drag(left,70,150);E.Commit();E.Apply()
-assert(left.frame.cx==370 and left.frame.bottom==150 and EndCapperDB.left.frameY)
+assert(left.frame.cx==690 and left.frame.bottom==150 and EndCapperDB.left.frameY)
 E.Begin();E.Apply();drag(left,0,0);assert(not canSave,"a drop without movement stays clean")
 left.handle.scripts.OnDragStart();cursorY=cursorY+40;left.handle.scripts.OnUpdate()
 combat=true;eventFrame:event("PLAYER_REGEN_DISABLED")
 assert(not E.draft and not left.handle.shown and not left.handle.scripts.OnUpdate and E.pending)
 combat=false;eventFrame:event("PLAYER_REGEN_ENABLED")
-assert(left.frame.cx==370 and left.frame.bottom==150,"combat cancels the unsaved drag")
+assert(left.frame.cx==690 and left.frame.bottom==150,"combat cancels the unsaved drag")
 panelShown=true
 E.Begin();E.SnapToBottom(E.draft,"left");E.Apply();floorCheck(left,E.draft.left)
 E.Cancel();E.Apply();assert(left.frame.bottom==150,"Cancel restores the saved unsnapped position")
@@ -394,8 +404,8 @@ print("PASS: all artwork crop lines, snap, preview drag and Save/Cancel restore 
 EndCapperDB=E.Normalize({left={art="seraph"},right={art="sanctum"}})
 left.nativeFrame:SetPoint("BOTTOM",UIParent,"BOTTOMLEFT",600,27.5)
 right.nativeFrame:SetPoint("BOTTOM",UIParent,"BOTTOMLEFT",1400,27.5)
-E.CaptureNativePairSpacing();E.Apply();E.Begin();E.LinkPair(E.draft,"left",true);E.Apply()
-assert(E.draft.pair.separation==576 and math.abs(left.frame.cx-600)<=1 and math.abs(right.frame.cx-1400)<=1)
+E.Apply();E.Begin();E.LinkPair(E.draft,"left",true);E.Apply()
+assert(E.draft.pair.separation==536 and math.abs(left.frame.cx-620)<=1 and math.abs(right.frame.cx-1380)<=1)
 E.draft.pair.separation=0;E.Apply()
 assert(left.frame.cx==887.5 and right.frame.cx==1112.5,"zero gap touches the frame edges")
 assert(left.art.point[4]==0 and right.art.point[4]==0)
@@ -447,15 +457,14 @@ for _,row in ipairs(E.ArtworkPairs) do
  end
 end
 print('PASS: edge-to-edge custom-frame separation 0/1200, stationary artwork offsets, X translation, Cancel, reload/unlink, dragging, mixed scales and combat deferral')
--- Reset uses the native baseline, rather than the adjusted linked spacing.
-E.nativePairSpan=1000
+-- Reset uses the screen baseline, independent of the Blizzard frame centres.
 E.SelectPair(E.draft,'seraph');E.draft.pair.size=100;E.SyncPair(E.draft);E.ResetPairSeparation(E.draft)
-local expected=1000-225/2-225
-assert(math.abs(E.draft.pair.separation-expected)<=1,'native default accounts for different effective frame scales')
+local expected=760-225/2-225
+assert(math.abs(E.draft.pair.separation-expected)<=1,'screen default accounts for different effective frame scales')
 E.draft.pair.separation=0;E.draft.pair.separationInitialized=true
 E.LinkPair(E.draft,'left',false);E.LinkPair(E.draft,'left',true)
 assert(E.draft.pair.separation==0,'explicit zero remains available and survives relinking')
-print('PASS: native-based initial/default gap, rounded frame-centre preservation, mixed scales, custom gap retention and deliberate zero')
+print('PASS: screen-based initial/default gap, rounded frame-centre preservation, mixed scales, custom gap retention and deliberate zero')
 function right.frame:GetEffectiveScale() return self.parent:GetEffectiveScale() end
 E.Cancel()
 EndCapperDB=E.Normalize({version=37,left={art="wolf",size=110},right={art="whiteWorgen",size=110}})
@@ -465,6 +474,9 @@ assert(left.frame.shown and not cornerLeft.frame.shown,"existing saves start in 
 E.SelectMode(E.draft,"corner");assert(not E.HasChanges(),"opening a tab does not dirty the settings")
 E.draft.enabled=true;E.Apply()
 assert(left.frame.shown and right.frame.shown and cornerLeft.frame.shown and cornerRight.frame.shown)
+left.nativeFrame.hidden=true;right.nativeFrame.hidden=true
+assert(left.frame:IsVisible() and right.frame:IsVisible() and cornerLeft.frame:IsVisible() and cornerRight.frame:IsVisible(),
+    "hidden Blizzard frames cannot hide either mode")
 assert(left.art.uv[1]~=cornerLeft.art.uv[1] and right.art.uv[1]~=cornerRight.art.uv[1])
 assert(cornerLeft.frame.anchor=="BOTTOMLEFT" and cornerRight.frame.anchor=="BOTTOMRIGHT")
 assert(cornerLeft.handle.shown and not left.handle.shown,"only the editing tab exposes drag handles")
@@ -477,7 +489,7 @@ assert(cornerLeft.frame.point[2]==50 and cornerRight.frame.point[2]==-50 and cor
 E.SnapToCorner(E.draft,"right");E.Apply()
 assert(cornerLeft.frame.bottom==0 and cornerLeft.frame.point[2]==0 and cornerRight.frame.point[2]==0)
 E.SelectMode(E.draft,"end");E.draft.enabled=false;E.Apply()
-assert(not left.frame.shown and left.native.alpha==left.alpha and cornerLeft.frame.shown)
+assert(not left.frame.shown and left.native.alpha==left.nativeAlpha and cornerLeft.frame.shown)
 E.Commit();EndCapperDB=E.Normalize(EndCapperDB);E.Begin();E.Apply()
 assert(not E.draft.enabled and E.draft.otherMode.enabled and not E.HasChanges())
 E.SelectMode(E.draft,"corner");assert(E.draft.pair.size==180 and E.draft.enabled and not E.HasChanges())
@@ -497,7 +509,7 @@ left.nativeFrame:SetPoint('BOTTOM',UIParent,'BOTTOMLEFT',200,130);right.nativeFr
 eventFrame:event('EDIT_MODE_LAYOUTS_UPDATED',layouts)
 assert(E.activePositionLayout==wide,'native event must defer before changing layouts')
 E.Apply();assert(not E.draft and not EndCapperDB.pair.linked)
-assert(left.frame.cx==200 and left.frame.cy==177.5 and right.frame.cx==800,'unused layout starts at native centres')
+assert(left.frame.cx==620 and left.frame.cy==75 and right.frame.cx==1380,'unused layout starts at screen defaults')
 panelShown=true;E.Begin();E.SelectArtwork(E.draft.left,'wolf','left');E.SelectArtwork(E.draft.right,'whiteWorgen','right')
 E.draft.left.x=33;E.draft.left.y=27;E.draft.left.size=125;E.Apply();drag(left,55,30);E.Commit();E.Apply()
 local narrow=E.activePositionLayout
@@ -513,7 +525,7 @@ assert(left.frame.cx~=200 and EndCapperDB.left.frameBottom)
 layouts.activeLayout=5
 left.nativeFrame:SetPoint('BOTTOM',UIParent,'BOTTOMLEFT',200,130);right.nativeFrame:SetPoint('BOTTOM',UIParent,'BOTTOMLEFT',800,160)
 E.Apply();assert(EndCapperDB.left.x==33 and EndCapperDB.left.y==27 and EndCapperDB.left.size==125)
-assert(left.frame.cx==255 and left.frame.cy==207.5,'saved drag survives profile switch')
+assert(left.frame.cx==675 and left.frame.cy==92.5,'saved drag survives profile switch')
 assert(left.art.path==E.artworkByID.wolf.path and right.art.path==E.artworkByID.whiteWorgen.path)
 eventFrame:event('PLAYER_LOGOUT');assert(EndCapperDB.positionProfiles[narrow].left.x==33)
 -- Failed metadata must not block real rendering, even with existing profiles.
@@ -528,6 +540,44 @@ C_EditMode.GetLayouts=function() return layouts end;E.Apply()
 assert(EndCapperDB.left.size==140 and E.activePositionLayout==narrow)
 C_EditMode,Enum,EditModePresetLayoutManager=priorAPI,priorEnum,priorPresets
 print('PASS: real renderer/native layout events, deferred profile switch, native anchors, saved linked spacing, draft discard, independent offsets, combat and logout persistence')
+local previousBartender=Bartender4
+Bartender4=nil
+assert(not E.HasBartenderArtBar())
+local artModule={db={profile={enabled=true}}}
+function artModule:OnEnable()
+    self.bar=texture();self.bar:SetAlpha(0.75)
+    self.bar.overlay=CreateFrame('Frame',nil,UIParent)
+    function self.bar.overlay:IsShown() return self.shown end
+    self.bar.overlay:Hide()
+end
+Bartender4={GetModule=function(_,name,quiet)
+    assert(name=='BlizzardArt' and quiet)
+    return artModule
+end}
+eventFrame:event('ADDON_LOADED','Bartender4')
+assert(E.HasBartenderArtBar() and not artModule.bar)
+E.Begin();E.draft.hideBartenderArt=true;E.Apply()
+artModule:OnEnable()
+local artBar=artModule.bar
+assert(artBar:GetAlpha()==0 and artModule.db.profile.enabled)
+artBar:SetAlpha(0.55)
+assert(artBar:GetAlpha()==0)
+artBar.overlay:SetShown(true)
+assert(artBar:GetAlpha()==0.55)
+artBar.overlay:Hide()
+assert(artBar:GetAlpha()==0)
+E.Cancel();E.Apply()
+assert(artBar:GetAlpha()==0.55,'cancel restores the last alpha Bartender requested')
+E.Begin();E.draft.hideBartenderArt=true;E.Commit();E.Apply()
+assert(artBar:GetAlpha()==0 and EndCapperDB.hideBartenderArt)
+combat=true;artBar:SetAlpha(0.8)
+assert(E.pending and artBar:GetAlpha()==0.8)
+combat=false;eventFrame:event('PLAYER_REGEN_ENABLED')
+assert(not E.pending and artBar:GetAlpha()==0)
+E.Begin();E.draft.hideBartenderArt=false;E.Commit();E.Apply()
+assert(artBar:GetAlpha()==0.8 and artModule.db.profile.enabled)
+Bartender4=previousBartender
+print('PASS: late Bartender art creation, suppression, unlock, combat deferral, saved preference and reversible alpha')
 local future = {version=99, custom="preserve"}
 EndCapperDB = future
 local newer = {}
