@@ -61,7 +61,7 @@ assert(s and #hosts==1 and s.host.level==13 and s.host.alpha==0.6 and not s.host
 assert(s.host.shown and not s.host.scripts.OnUpdate and #s.layers==2 and not e.effects)
 assert(e.nativeConfig.nativeEffect=='fireGlow' and e.secondaryEffect.nativeConfig.nativeEffect=='fireFlame')
 for _,layer in ipairs(s.layers) do
-    assert(layer.texture.path:find('Cinderforged'..layer.suffix..'.tga',1,true))
+    assert(layer.texture.path:find('Cinderforged'..layer.suffix..'CAS.tga',1,true))
     assert(layer.texture.blend=='ADD' and layer.texture.width==225 and layer.texture.height==150)
     assert(layer.group.playing and layer.group.loop=='REPEAT' and #layer.group.animations==2)
     local a,b=unpack(layer.group.animations)
@@ -84,7 +84,7 @@ now=100;E.StopMolten(e);assert(s.elapsed==2)
 e.frame.scripts.OnShow();assert(not s.host.shown)
 e.frame.hidden=false;e.frame.scripts.OnShow();assert(s.host.shown and s.layers[2].group.offset==2)
 E.UpdateEffects(e,E.NormalizeSide({art='cindermaw'},'left'))
-assert(#hosts==1 and s.layers[2].texture.path:find('CindermawEmission.tga',1,true))
+assert(#hosts==1 and s.layers[2].texture.path:find('CindermawEmissionCAS.tga',1,true))
 E.UpdateEffects(e,E.NormalizeSide({art='hidden'},'left'))
 assert(not s.enabled and not s.host.shown and not s.layers[1].group.playing and not e.secondaryEffect.nativeWanted)
 local other=entry();E.UpdateEffects(other,c);assert(#hosts==2 and other.molten~=s)
@@ -94,8 +94,17 @@ for art,name in pairs(E.WarlockArtworks) do
     local config=E.NormalizeSide({art=art,flip=true},'left')
     E.UpdateEffects(e,config)
     assert(e.molten==s and s.host.shown and s.layers[2].group.playing)
-    assert(s.layers[2].texture.path:find(name..'Emission.tga',1,true))
-    assert(s.layers[1].texture.path:find(name..'Bloom.tga',1,true))
+    assert(s.layers[2].texture.path:find(name..'EmissionCAS.tga',1,true))
+    assert(s.layers[1].texture.path:find(name..'BloomCAS.tga',1,true))
     assert(s.layers[2].texture.uv[1]==1 and s.layers[2].texture.width==450)
 end
 print('PASS: both warlock green emissions use registered native core/bloom Alpha pulses')
+
+local casDB=EndCapperDB
+for _,enabled in ipairs({false,true}) do
+    EndCapperDB={casSharpening=enabled};E.UpdateEffects(e,E.NormalizeSide({art='hexbound'},'left'))
+    for _,layer in ipairs(e.molten.layers) do
+        assert(layer.texture.path:find('Hexbound'..layer.suffix..'CAS'..'.tga',1,true))
+    end
+end
+EndCapperDB=casDB

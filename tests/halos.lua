@@ -59,7 +59,7 @@ end
 local e=entry();local c=E.NormalizeSide({art='seraph',flip=false},'right')
 E.UpdateEffects(e,c);local s=e.halo
 assert(s and #hosts==1 and s.host.level==11 and not s.host.mouse and s.host.alpha==0.6)
-assert(s.texture.path:find('SeraphHalo.blp',1,true) and s.texture.blend=='BLEND')
+assert(s.texture.path:find('SeraphHaloCAS.blp',1,true) and s.texture.blend=='BLEND')
 assert(s.texture.wrapX=='CLAMP' and s.texture.wrapY=='CLAMP' and s.texture.filter=='TRILINEAR')
 assert(s.texture.snap==false and s.texture.bias==0)
 assert(s.rotation.duration==40 and s.rotation.degrees==-360 and s.group.playing and s.group.loop=='REPEAT')
@@ -93,7 +93,7 @@ end
 local sister=entry();E.UpdateEffects(sister,E.NormalizeSide({art='sanctum'},'right'))
 assert(not sister.halo and #hosts==1,'a fresh non-hooded sister must not allocate a halo')
 E.UpdateEffects(e,E.NormalizeSide({art='umbra'},'left'))
-assert(e.halo==s and #hosts==1 and s.texture.path:find('UmbraHalo.blp',1,true) and s.phase==0)
+assert(e.halo==s and #hosts==1 and s.texture.path:find('UmbraHaloCAS.blp',1,true) and s.phase==0)
 assert(e.nativeConfig.nativeEffect=='voidGlow' and e.secondaryEffect.nativeConfig.nativeEffect=='voidSmoke' and not e.effects and e.nativeWanted)
 local other=entry();E.UpdateEffects(other,c);assert(#hosts==2 and other.halo~=s)
 c.effects=false;E.UpdateEffects(other,c);assert(not other.halo.enabled and not other.halo.group.playing)
@@ -102,3 +102,10 @@ s.texture.SetSnapToPixelGrid=nil;s.texture.SetTexelSnappingBias=nil
 E.UpdateEffects(e,E.NormalizeSide({art='seraph'},'left'))
 assert(s.group.playing and s.texture.filter=='TRILINEAR')
 print('PASS: hood-only halo rotation, centre/mirror/size, phase/speed/direction, lifecycle and independence from paired native effects')
+
+local casDB=EndCapperDB
+EndCapperDB={casSharpening=false};E.UpdateEffects(e,E.NormalizeSide({art='seraph'},'left'))
+assert(e.halo.texture.path:find('SeraphHaloCAS.blp',1,true),'legacy CAS off cannot disable standard sharpening')
+EndCapperDB={casSharpening=true};E.UpdateEffects(e,E.NormalizeSide({art='seraph'},'left'))
+assert(e.halo.texture.path:find('SeraphHaloCAS.blp',1,true),'standard sharpening remains on')
+EndCapperDB=casDB

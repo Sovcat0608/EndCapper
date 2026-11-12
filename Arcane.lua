@@ -1,7 +1,20 @@
 local _, E = ...
 -- Art-registered layers. Native glow calibration never moves these textures.
 local media="Interface\\AddOns\\EndCapper\\Media\\"
-local uv={0,0,0,1,1,0,1,1}
+local sizes={{64,64},{96,128},{128,128},{192,256},{256,256}}
+local function setArtworkTexture(texture,name,entry,width,height,flip)
+    local scale=entry.frame.GetEffectiveScale and entry.frame:GetEffectiveScale()
+    local _,screenHeight
+    if GetPhysicalScreenSize then _,screenHeight=GetPhysicalScreenSize() end
+    local selected=sizes[#sizes]
+    if scale and scale>0 and screenHeight and screenHeight>0 then
+        local pixels=math.max(width,height)*scale*screenHeight/768
+        for _,size in ipairs(sizes) do if size[1]>=pixels then selected=size;break end end
+    end
+    local u=selected[1]/selected[2]
+    texture:SetTexture(media..name.."CASSize"..selected[1]..".tga")
+    texture:SetTexCoord(E.UV({0,0,0,u,u,0,u,u},flip))
+end
 function E.StopArcane(entry)
     local s=entry.arcane
     if not s then return end
@@ -37,7 +50,6 @@ function E.UpdateArcane(entry,config)
         effectsHost:EnableMouse(false)
         local function texture(name,blend,layer,parent)
             local t=(parent or host):CreateTexture(nil,"OVERLAY",nil,layer)
-            t:SetTexture(media..name..".blp","CLAMP","CLAMP","TRILINEAR")
             if t.SetSnapToPixelGrid then t:SetSnapToPixelGrid(false) end
             if t.SetTexelSnappingBias then t:SetTexelSnappingBias(0) end
             t:SetBlendMode(blend)
@@ -77,8 +89,6 @@ function E.UpdateArcane(entry,config)
     s.enabled=true; s.art=entry.art
     local soulbound=config.art=="soulbound"
     s.hasSeal=not soulbound
-    s.crystal:SetTexture(media..(soulbound and "SoulboundCrystal" or "ArcaneCrystal")..".blp","CLAMP","CLAMP","TRILINEAR")
-    s.emission:SetTexture(media..(soulbound and "SoulboundCrystalEmission" or "ArcaneCrystal")..".blp","CLAMP","CLAMP","TRILINEAR")
     if s.hasSeal then s.sigil:Show() else s.sigil:Hide() end
     local width,height=entry.art:GetSize(); s.height=height
     local anchorU=soulbound and 0.30 or 0.345
@@ -100,9 +110,9 @@ function E.UpdateArcane(entry,config)
     -- 100% is the approved rc.6 size; centre and rotation stay independent.
     local sealSize=height*0.525*(config.sealSize or E.ArcaneSealSize)/100
     s.sigil:SetSize(sealSize,sealSize)
-    s.crystal:SetTexCoord(E.UV(uv,config.flip))
-    s.emission:SetTexCoord(E.UV(uv,config.flip))
-    s.sigil:SetTexCoord(E.UV(uv,config.flip))
+    setArtworkTexture(s.crystal,soulbound and "SoulboundCrystal" or "ArcaneCrystal",entry,crystalWidth,crystalHeight,config.flip)
+    setArtworkTexture(s.emission,soulbound and "SoulboundCrystalEmission" or "ArcaneCrystal",entry,crystalWidth,crystalHeight,config.flip)
+    setArtworkTexture(s.sigil,"ArcaneSigil",entry,sealSize,sealSize,config.flip)
     s.rotation:SetDegrees(config.flip and 360 or -360)
     E.PlayArcane(entry)
 end

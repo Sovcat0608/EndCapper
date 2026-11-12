@@ -52,7 +52,7 @@ function E.UpdateFrost(entry,config)
     for _,layer in ipairs(s.layers) do
         layer.enabled=layer.kind~="Eyes" or config.art=="rimeguard"
         if layer.enabled then
-            layer.texture:SetTexture(media..name..layer.suffix..".tga")
+            layer.texture:SetTexture(E.ArtworkTexture(media..name..layer.suffix..".tga"))
             layer.texture:SetSize(width,height);layer.texture:SetTexCoord(E.UV(uv,config.flip));layer.texture:Show()
         else layer.group:Stop();layer.texture:Hide() end
     end

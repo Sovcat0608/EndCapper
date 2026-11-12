@@ -145,6 +145,10 @@ function E.RefreshOptions()
         p.dev.note:SetText(c.art=="highGeneral" and "All five run. Each eye trail is independent."
             or "All four run. Each eye trail is independent.")
     end
+    if E.ZephrasEffects[c.art] then
+        p.dev.heading:SetText("Developer: "..side.." effects")
+        p.dev.note:SetText("Both winds + blue mist run. Opacity 0 hides one.")
+    end
     if E.WorgenArtworks[c.art] then
         p.dev.heading:SetText("Developer: "..side.." effects")
         p.dev.note:SetText("Trail + gloom run together. Select one to edit.")

@@ -28,7 +28,7 @@ function E.UpdateMoonwell(entry,config)
         s={host=host,layers={},elapsed=0};entry.moonwell=s
         for _,spec in ipairs({{"Bounce",5,.04,.34},{"Glyphs",4,.08,.62},{"Moon",6,.08,.62},{"Water",5,.08,.62}}) do
             local t=host:CreateTexture(nil,"OVERLAY",nil,1)
-            t:SetTexture(media..spec[1]..".tga");t:SetBlendMode("ADD");t:SetPoint("CENTER",host,"CENTER",0,0);t:SetAlpha(spec[3])
+            t:SetBlendMode("ADD");t:SetPoint("CENTER",host,"CENTER",0,0);t:SetAlpha(spec[3])
             local group=t:CreateAnimationGroup();group:SetLooping("REPEAT")
             for order=1,2 do
                 local a=group:CreateAnimation("Alpha");a:SetFromAlpha(order==1 and spec[3] or spec[4]);a:SetToAlpha(order==1 and spec[4] or spec[3])
@@ -41,6 +41,6 @@ function E.UpdateMoonwell(entry,config)
     local w,h=entry.art:GetSize()
     s.host:SetFrameLevel(entry.frame:GetFrameLevel()+3);s.host:SetAlpha(entry.alpha);s.host:SetSize(w,h)
     s.host:ClearAllPoints();s.host:SetPoint("CENTER",entry.art,"CENTER",0,0)
-    for _,layer in ipairs(s.layers) do layer.texture:SetSize(w,h);layer.texture:SetTexCoord(E.UV(uv,config.flip));layer.texture:Show() end
+    for _,layer in ipairs(s.layers) do layer.texture:SetTexture(E.ArtworkTexture(media..layer.kind..".tga"));layer.texture:SetSize(w,h);layer.texture:SetTexCoord(E.UV(uv,config.flip));layer.texture:Show() end
     E.PlayMoonwell(entry)
 end

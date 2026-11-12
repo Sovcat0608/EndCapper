@@ -1,8 +1,10 @@
 # EndCapper
 
-**Version 1.4.4 for World of Warcraft: Forever.**
+**Version 1.4.5 for World of Warcraft: Forever.**
 
-Decorate your action bars and screen corners with 28 fantasy designs. Mix and match artwork or link matching pairs, then adjust placement, size and mirroring from EndCapper’s own panel.
+Decorate your action bars and screen corners with 30 fantasy designs. Mix and match artwork or link matching pairs, then adjust placement, size and mirroring from EndCapper’s own panel.
+
+Custom artwork includes maximum CAS sharpening as standard. Moving elements use size-specific textures to retain clarity while protecting transparent edges.
 
 ## Install or update
 
@@ -33,6 +35,8 @@ Animated effects stop at the artwork's bottom edge. This cutoff follows artwork 
 
 | Design | Effects |
 | --- | --- |
+| Zephyr | Floating island shrine and windswept terraces, with Gentle Whirlwind, Skywall Swirl and Blue Mist |
+| Skycutter | Gently hovering skyship behind a stationary island dock, with Gentle Whirlwind, Skywall Swirl and Blue Mist |
 | Banshee | Undead Sylvanas, with black dungeon fog, two red flame eye trails and Void Glow |
 | High General | Living Sylvanas, with golden luminance bloom, Divine Radiance, two blue eye trails and a gentle whirlwind |
 | Undead | Decaying undead face with amber eyes, blue banners and green-lit ruins, with Amber Flow and Rot Fog |
@@ -73,6 +77,8 @@ Violetspire and Kirin Tor form a linked sister pair. The spire retains its custo
 With **Flip horizontally** unchecked, Lordaeron, Shadowfang, Stormhorn, Felwing, Hexbound, Plaguewell and Frosthilt mirror on the right. Undead, Snowfang, Soulbound, Cryptgate and the other custom designs mirror on the left. Checking Flip reverses that default, including attached effects. Switching artwork keeps your checkbox choice. Existing saved appearances are preserved; uncheck Flip to adopt a revised default on an already configured cap.
 
 **Show Ecap button** toggles the logo launcher. With options open, drag the launcher by its gold outline. Save keeps its visibility and position. Use `/ecap` to reopen options when the button is hidden.
+
+With OneForAll Forever's **Collect minimap buttons** enabled, click the EndCapper logo in its drawer to open EndCapper options. The floating launcher returns to its saved position when collection is turned off.
 
 ## Commands
 

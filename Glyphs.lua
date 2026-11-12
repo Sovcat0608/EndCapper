@@ -33,7 +33,6 @@ function E.UpdateGlyphs(entry,config)
         local host=CreateFrame("Frame",nil,entry.frame)
         host:SetAllPoints(entry.frame); host:EnableMouse(false)
         local texture=host:CreateTexture(nil,"OVERLAY",nil,7)
-        texture:SetTexture("Interface\\AddOns\\EndCapper\\Media\\FelwingGlyphAtlas.tga")
         texture:SetBlendMode("ADD")
         state={host=host,texture=texture,elapsed=0}
         entry.glyphs=state
@@ -44,6 +43,7 @@ function E.UpdateGlyphs(entry,config)
             draw(state)
         end
     end
+    state.texture:SetTexture(E.ArtworkTexture("Interface\\AddOns\\EndCapper\\Media\\FelwingGlyphAtlas.tga"))
     state.enabled=true; state.flip=config.flip
     state.host:SetFrameLevel(entry.frame:GetFrameLevel()+3)
     state.host:SetAlpha(entry.alpha)

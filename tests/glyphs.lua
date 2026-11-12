@@ -37,7 +37,7 @@ local e=entry();local c=E.NormalizeSide({art='felwing',flip=false},'left')
 E.UpdateEffects(e,c)
 local g=e.glyphs;local host,t=g.host,g.texture
 assert(#hosts==1 and host.shown and host.scripts.OnUpdate and host.alpha==0.6 and host.level==13 and not host.mouse)
-assert(t.path:find('FelwingGlyphAtlas.tga',1,true) and t.blend=='ADD' and t.width==337.5 and t.height==225)
+assert(t.path:find('FelwingGlyphAtlasCAS.tga',1,true) and t.blend=='ADD' and t.width==337.5 and t.height==225)
 assert(t.point[1]=='CENTER' and t.point[2]==e.art and t.point[4]==0 and t.point[5]==0)
 assert(g.index==0 and t.uv[1]==0 and t.uv[5]==0.25)
 assert(e.nativeConfig.nativeEffect=='felDrip' and e.secondaryEffect.nativeConfig.nativeEffect=='felGlow' and host.shown)
@@ -68,3 +68,10 @@ E.UpdateEffects(e,E.NormalizeSide({art='hidden'},'left'));assert(not host.shown 
 c.effects=false;E.UpdateEffects(e,c);assert(not host.shown)
 c.effects=true;local other=entry();E.UpdateEffects(other,c);assert(#hosts==2 and other.glyphs~=g)
 print('PASS: glyph atlas timing/wrap/stalls, per-cell mirror, exact artwork registration, native-control isolation, reuse, alpha and hide/show/art-switch cleanup')
+
+local casDB=EndCapperDB
+EndCapperDB={casSharpening=false};E.UpdateEffects(e,c)
+assert(e.glyphs.texture.path:find('FelwingGlyphAtlasCAS.tga',1,true),'legacy CAS off cannot disable standard sharpening')
+EndCapperDB={casSharpening=true};E.UpdateEffects(e,c)
+assert(e.glyphs.texture.path:find('FelwingGlyphAtlasCAS.tga',1,true),'standard sharpening remains on')
+EndCapperDB=casDB

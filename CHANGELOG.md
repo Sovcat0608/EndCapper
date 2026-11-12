@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.4.5 — 2026-11-12
+
+- Added **Zephyr / Skycutter**, a matching Zephras Isle sister pair, bringing the collection to **30 custom designs**. Zephyr features floating-island architecture and landscape; Skycutter features its own island and a separate airship.
+- Animated Skycutter's airship with a smooth six-second hover and independent ±3-degree, seven-second rocking motion.
+- Added calibrated whirlwind and Blue Mist effects for both new sisters, with updated default facing in End Cap and Corner Cap modes.
+- Made maximum CAS sharpening standard across all custom artwork, with protected transparent edges and preserved soft glows. Removed the temporary sharpening toggle.
+- Improved Skycutter, Soulbound and Violetspire moving artwork with size-specific textures for better clarity and smoother edges. Disabled texel snapping on the floating boat to eliminate stepped movement.
+- Expanded the Gentle Whirlwind render viewport to prevent frame-edge clipping while retaining the intended artwork-bottom cutoff.
+- Added OneForAll Forever minimap-button collection support, restoring the EndCapper launcher to its saved position when released.
+
 ## 1.4.4 — 2026-11-12
 
 - Added **Dominos** and **Bartender4** support in both End Cap and Corner Cap modes. Custom artwork now uses EndCapper's own frames and can be dragged into place beside replacement bars.

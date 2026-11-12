@@ -360,3 +360,62 @@ assert(E.cornerCaps.right.undercityEffects.blueEyeLeft.nativeSmoke.slots[1].scen
 E.Cancel();E.Apply();advance(0)
 assert(sylvanasCaps.left.undercityEffects.redEyeLeft.nativeSmoke.slots[1].scene.alpha>0)
 print('PASS: Sylvanas four/five simultaneous models per cap, independent eyes, stable selection, both modes, art-change cleanup and Cancel')
+
+EndCapperDB=E.Normalize({left={art='zephyr'},right={art='skycutter'}})
+E.Begin();E.Apply();advance(0)
+local zephrasEnd={left=E.caps.left,right=E.caps.right}
+for _,mode in ipairs({'end','corner'}) do
+    E.SelectMode(E.draft,mode);E.draft.enabled=true;E.Apply();advance(0)
+    for _,side in ipairs({'left','right'}) do
+        local cap=(mode=='end' and E.caps or E.cornerCaps)[side]
+        local states={cap.nativeSmoke,cap.undercityEffects.eerieGroundFog.nativeSmoke,cap.undercityEffects.skyWind.nativeSmoke}
+        local calls={}
+        for i,id in ipairs({445680,165743,460839}) do
+            assert(states[i].slots[1].actor.id==id and states[i].slots[1].scene.shown)
+            local offset=side=='right' and (i==3 and 1 or 4) or 3
+            assert(states[i].slots[1].scene:GetFrameLevel()==cap.frame:GetFrameLevel()+offset,
+                'Skycutter rear effects stay behind boat; front effects stay above island')
+            calls[i]=states[i].slots[1].actor.modelCalls
+        end
+        assert(states[1].slots[1].scene.alpha>0 and states[3].slots[1].scene.alpha>0)
+        E.SelectEffect(E.draft[side],'skyWind');E.SetDevEffect(E.draft[side],'trailOpacity',12);E.Apply(side,mode);advance(0)
+        assert(states[1].slots[1].scene.alpha>0 and states[3].slots[1].scene.alpha>0)
+        E.SelectEffect(E.draft[side],'rangerWind');E.SetDevEffect(E.draft[side],'trailOpacity',0);E.Apply(side,mode);advance(0)
+        assert(states[1].slots[1].scene.alpha==0 and states[3].slots[1].scene.alpha>0)
+        E.SetDevEffect(E.draft[side],'trailOpacity',12);E.Apply(side,mode);advance(0)
+        if mode=='corner' then assert(cap.nativeSmoke~=zephrasEnd[side].nativeSmoke) end
+        for _,id in ipairs(E.ZephrasEffects[E.draft[side].art]) do
+            E.SelectEffect(E.draft[side],id);E.Apply(side,mode);advance(0)
+            for i,state in ipairs(states) do
+                assert(state.slots[1].scene.shown and state.slots[1].actor.modelCalls==calls[i])
+            end
+        end
+        E.SelectEffect(E.draft[side],'rangerWind');E.SetDevEffect(E.draft[side],'trailOpacity',0);E.Apply(side,mode);advance(0)
+        assert(states[1].slots[1].scene.alpha==0 and states[2].slots[1].scene.alpha>0 and states[3].slots[1].scene.alpha>0)
+    end
+end
+E.SelectArtwork(E.draft.left,'hidden','left');E.Apply('left','corner');advance(0)
+assert(not E.cornerCaps.left.nativeSmoke.slots[1].scene.shown)
+for _,id in ipairs({'eerieGroundFog','skyWind'}) do
+    assert(not E.cornerCaps.left.undercityEffects[id].nativeSmoke.slots[1].scene.shown)
+    assert(E.cornerCaps.right.undercityEffects[id].nativeSmoke.slots[1].scene.shown)
+end
+E.Cancel();E.Apply();advance(0)
+assert(zephrasEnd.left.nativeSmoke.slots[1].scene.alpha>0)
+print('PASS: Zephras three simultaneous scenes, both modes, independent wind comparison, radio stability, opacity isolation, hidden cleanup and Cancel')
+
+E.Cancel();EndCapperDB=E.Normalize({left={art='seraph'},right={art='sanctum'}});E.Begin()
+E.draft.otherMode.enabled=true
+E.draft.otherMode.left.art='moonwell';E.draft.otherMode.right.art='verdantRoot'
+E.Apply();advance(0)
+for _,enabled in ipairs({false,true}) do
+    E.draft.casSharpening=enabled;E.Apply();advance(0)
+    for _,cap in ipairs({E.caps.left,E.caps.right,E.cornerCaps.left,E.cornerCaps.right}) do
+        local expected=(cap.mode=='corner' and E.draft.otherMode or E.draft)[cap.side].art
+        assert(cap.art.path==E.ArtworkTexture(E.artworkByID[expected].path),'both modes use standard CAS despite legacy flag')
+        assert(cap.nativeSmoke.slots[1].scene.shown,'native effect stays visible')
+    end
+end
+E.draft.casSharpening=false;E.Apply();advance(0);E.Cancel();E.Apply();advance(0)
+assert(E.caps.left.art.path:find('SeraphCAS.tga',1,true),'Cancel restores rendered CAS')
+print('PASS: standard CAS renders all four caps, ignores retired flags and keeps native effects')

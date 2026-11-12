@@ -108,6 +108,15 @@ local function checkNative(entry,config,scene,level)
     assert(insets and insets[1]==0 and insets[2]==0 and insets[3]==0 and insets[4]==0,
         "camera insets do not establish the physical particle boundary")
     local profile=E.NativeEffectProfiles[config.nativeEffect]
+    if profile and (profile.naturalEdges or (E.ZephrasEffects[config.art] and config.nativeEffect=='rangerWind')) then
+        local densityViewport=288*(entry.art.width/150)*config.trailSize/100
+        local x,y=E.EffectAnchor(E.EffectEmitters[1],entry.art.width,entry.art.height,config)
+        assert(v==densityViewport*2 and h==densityViewport*2)
+        assert(scene.point[4]==x and scene.point[5]==y)
+        assert(scene.SetViewTranslationValue[1]==0 and scene.SetViewTranslationValue[2]==0)
+        assert(math.abs(h/(16*math.tan(scene.SetCameraFieldOfViewValue[1]/2))-densityViewport/6)<.00001)
+        return
+    end
     if profile and profile.fixedViewport then
         local densityViewport=288*(entry.art.width/150)*config.trailSize/100
         local x,y=E.EffectAnchor(E.EffectEmitters[1],entry.art.width,entry.art.height,config)
@@ -157,10 +166,10 @@ for _,art in ipairs(E.artworks) do
                 local c=E.GetEffectConfig(E.NormalizeSide({art=art.id,flip=mirror},"left"))
                 E.UpdateEffects(e,c)
                 local primary=e.nativeSmoke.slots[1].scene
-                checkNative(e,c,primary,10+(c.effectLayer=="back" and 1 or (art.id=="violetSpire" or art.id=="soulbound") and 4 or 3))
-                -- Width stays fixed; the physical height stops at the baseline.
+                checkNative(e,c,primary,10+(c.effectLayer=="back" and 1 or (art.id=="violetSpire" or art.id=="soulbound" or art.id=="skycutter") and 4 or 3))
+                -- Fixed smoke and natural-edge wind have padded render widths.
                 local expected=288*(e.art.width/150)*c.trailSize/100
-                local fixed=E.NativeEffectProfiles[c.nativeEffect].fixedViewport
+                local fixed=E.NativeEffectProfiles[c.nativeEffect].fixedViewport or E.ZephrasEffects[c.art]
                 assert(math.abs(primary.width-expected*(fixed and 2 or 1))<.00001)
                 if not fixed then assert(primary.height<=primary.width) end
                 local x,y,direction=E.EffectAnchor(E.EffectEmitters[1],e.art.width,e.art.height,c)
@@ -271,3 +280,37 @@ local ordinary=E.GetEffectConfig(E.NormalizeSide({art='skull'},'left'))
 E.UpdateEffects(smokeEntry,ordinary)
 checkNative(smokeEntry,ordinary,smokeEntry.nativeSmoke.slots[1].scene,13)
 print('PASS: Banshee fixed smoke viewport/FOV across Y and size ranges, stable projection, bottom cutoff, both mirrors and ordinary-effect restoration')
+
+-- Zephras wind uses authored soft edges, independent of the bottom crop.
+local windEntry=entry();windEntry.nativeWanted=true
+for _,art in ipairs({'zephyr','skycutter'}) do
+  for _,effectID in ipairs({'rangerWind','skyWind'}) do
+    for _,flip in ipairs({false,true}) do
+        for _,size in ipairs({50,100,200}) do
+            local wind=E.GetEffectConfig(E.NormalizeSide({art=art,flip=flip},'left'),effectID)
+            wind.trailSize=size;wind.trailOpacity=12
+            local v=288*(windEntry.art.width/150)*size/100
+            for _,y in ipairs({-150,0,150}) do
+                wind.trailY=y;assert(E.UpdateNativeSmoke(windEntry,wind))
+                local state=windEntry.nativeSmoke;local s=state.slots[1].scene
+                assert(state.profileID==effectID and state.slots[1].actor.fileID==(effectID=='rangerWind' and 445680 or 460839))
+                assert(s.width==2*v and s.height==2*v and s.alpha>0)
+                assert(not s.endCapperClip and not s.clips and s.parent==windEntry.frame)
+                local x,cy=E.EffectAnchor(E.EffectEmitters[1],windEntry.art.width,windEntry.art.height,wind)
+                assert(s.point[4]==x and s.point[5]==cy)
+                assert(s.SetViewTranslationValue[1]==0 and s.SetViewTranslationValue[2]==0)
+                local tangent=math.tan(s.SetCameraFieldOfViewValue[1]/2)
+                assert(math.abs(s.height/(16*tangent)-v/6)<.00001,'padding must not resize the effect')
+            end
+        end
+    end
+  end
+end
+local generalWind=E.GetEffectConfig(E.NormalizeSide({art='highGeneral'},'left'),'rangerWind')
+assert(E.UpdateNativeSmoke(windEntry,generalWind))
+assert(windEntry.nativeSmoke.profileID=='rangerWind' and windEntry.nativeSmoke.slots[1].actor.fileID==445680)
+checkNative(windEntry,generalWind,windEntry.nativeSmoke.slots[1].scene,13)
+local cloud=E.GetEffectConfig(E.NormalizeSide({art='banshee'},'left'),'bansheeCloud')
+assert(E.UpdateNativeSmoke(windEntry,cloud))
+checkNative(windEntry,cloud,windEntry.nativeSmoke.slots[1].scene,13)
+print('PASS: Zephras soft-edge wind, padded projection across mirrors/sizes/Y, High General isolation and pooled crop restoration')

@@ -63,7 +63,7 @@ assert(e.nativeConfig.nativeEffect=='coldFlame' and e.secondaryEffect.nativeConf
 local periods={Runes=4,Ice=6,Eyes=3}
 for _,layer in ipairs(s.layers) do
     assert(layer.enabled and layer.group.playing and layer.texture.shown and layer.period==periods[layer.kind])
-    assert(layer.texture.path:find('Rimeguard'..layer.suffix..'.tga',1,true) and layer.texture.blend=='ADD')
+    assert(layer.texture.path:find('Rimeguard'..layer.suffix..'CAS.tga',1,true) and layer.texture.blend=='ADD')
     assert(layer.texture.width==225 and layer.texture.height==150 and layer.texture.uv[1]==0)
     local a,b=unpack(layer.group.animations)
     assert(a.kind=='Alpha' and b.kind=='Alpha' and a.duration+b.duration==layer.period)
@@ -106,7 +106,7 @@ assert(m.nativeConfig.nativeEffect=='moonwellGlow' and m.secondaryEffect.nativeC
 local byKind={}
 for _,layer in ipairs(ms.layers) do
     byKind[layer.kind]=layer
-    assert(layer.texture.path:find('Moonwell'..layer.kind..'.tga',1,true) and layer.texture.blend=='ADD')
+    assert(layer.texture.path:find('Moonwell'..layer.kind..'CAS.tga',1,true) and layer.texture.blend=='ADD')
     local a,b=unpack(layer.group.animations)
     assert(a.from==b.to and a.to==b.from and a.duration+b.duration==layer.period)
 end
@@ -124,3 +124,17 @@ now=99;m.frame.hidden=false;m.frame.scripts.OnShow();assert(ms.elapsed==9 and ms
 E.UpdateEffects(m,E.NormalizeSide({art='hidden'},'right'));assert(not ms.enabled and not ms.host.shown and not m.secondaryEffect.nativeWanted)
 E.UpdateEffects(m,mc);assert(m.moonwell==ms and ms.host.shown)
 print('PASS: Moonwell paired effects, four native pulse groups, water/bounce phase lock, mirror/resize, tuning isolation, pause/resume and cleanup')
+
+local casDB=EndCapperDB
+for _,enabled in ipairs({false,true}) do
+    EndCapperDB={casSharpening=enabled}
+    E.UpdateEffects(e,E.NormalizeSide({art='rimeguard'},'left'))
+    for _,layer in ipairs(e.frost.layers) do
+        assert(layer.texture.path:find('Rimeguard'..layer.suffix..'CAS'..'.tga',1,true))
+    end
+    E.UpdateEffects(m,mc)
+    for _,layer in ipairs(m.moonwell.layers) do
+        assert(layer.texture.path:find('Moonwell'..layer.kind..'CAS'..'.tga',1,true))
+    end
+end
+EndCapperDB=casDB

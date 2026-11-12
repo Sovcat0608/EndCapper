@@ -2,6 +2,7 @@ local _, E = ...
 -- Visible basal edges measured in the runtime textures, top to bottom.
 -- These are horizontal cutoffs, not masks of the full artwork silhouette.
 E.EffectBaselines = {
+    zephyr=984/1024, skycutter=999/1024,
     banshee=506/512, highGeneral=503/512,
     cryptgate=506/512, plaguewell=505/512,
     hexbound=461/512, soulbound=473/512,
@@ -44,6 +45,19 @@ function E.ClipEffect(entry, config, frame, level)
 end
 
 function E.CropNativeEffect(entry, config, scene, viewport, centreX, centreY, profile)
+    local zephrasWind=config.nativeEffect=="rangerWind" and E.ZephrasEffects and E.ZephrasEffects[config.art]
+    if profile and (profile.naturalEdges or zephrasWind) then
+        -- Let this bounded swirl fade using its authored alpha. A bottom crop
+        -- would reintroduce the straight edge. Double the render room without
+        -- changing projection density, and clear pooled crop state.
+        scene:SetSize(viewport*2,viewport*2)
+        scene:ClearAllPoints()
+        scene:SetPoint("CENTER",entry.art,"TOPLEFT",centreX,centreY)
+        if scene.SetViewInsets then scene:SetViewInsets(0,0,0,0) end
+        scene:SetCameraFieldOfView(2*math.atan(3/4))
+        if scene.SetViewTranslation then scene:SetViewTranslation(0,0) end
+        return true
+    end
     local baseline=E.EffectBaselines[config.art]
     local _,height=entry.art:GetSize()
     if profile and profile.fixedViewport and baseline and scene.SetViewTranslation then

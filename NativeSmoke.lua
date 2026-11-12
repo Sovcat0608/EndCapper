@@ -2,6 +2,10 @@ local _, E = ...
 -- NativeSmoke names remain internal for compatibility.
 -- Emitter coordinates were inspected in the model data; see docs/native-smoke.md.
 E.NativeEffectProfiles = {
+    -- Skywall ground vortex: soft swirl textures, 5–9.3 second rotations.
+    -- Zephras alternative, independently tunable beside Gentle Whirlwind.
+    skyWind={fileID=460839,name="Skywall Swirl",emitterX=0,emitterY=0.0007514954,emitterZ=1.0117073059,
+        modelScale=0.018,cameraElevation=35,animation=0,opacity=0.8,centered=true,naturalEdges=true},
     -- Sylvanas: existing inspected native assets, independent IDs for each eye.
     rangerBloom={fileID=166034,name="Luminance Bloom",emitterX=0,emitterY=0,emitterZ=0,
         modelScale=2,opacity=0.8,centered=true},
@@ -250,7 +254,7 @@ function E.UpdateNativeSmoke(entry, config)
         local angle = math.rad(config.trailAngle or 14)
         local sine, cosine = math.sin(angle), math.cos(angle)
         for _, slot in ipairs(state.slots) do
-            local frontLevel=(config.art=="violetSpire" or config.art=="soulbound") and 4 or 3
+            local frontLevel=(config.art=="violetSpire" or config.art=="soulbound" or config.art=="skycutter") and 4 or 3
             slot.scene:SetFrameLevel(entry.frame:GetFrameLevel()+(config.effectLayer=="back" and 1 or frontLevel))
             -- Reset pooled scenes to native colour unless this profile opts out.
             if slot.scene.SetDesaturation then

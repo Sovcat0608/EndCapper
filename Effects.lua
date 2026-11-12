@@ -86,6 +86,7 @@ local function updateMultiEffects(entry, config)
 end
 
 local function stopCustomEffects(entry)
+    if E.StopSkycutter then E.StopSkycutter(entry) end
     if E.StopLiquid then E.StopLiquid(entry) end
     if E.StopHalo then E.StopHalo(entry) end
     if E.StopMoonwell then E.StopMoonwell(entry) end
@@ -109,6 +110,8 @@ local function stopUnusedNative(entry)
     if secondary and not secondary.nativeWanted then E.StopNativeSmoke(secondary) end
 end
 function E.PlayEffects(entry)
+    -- The boat remains visible as static artwork when effects are disabled.
+    if E.PlaySkycutter then E.PlaySkycutter(entry) end
     if not entry.effectsEnabled or not entry.frame:IsVisible() then return end
     if E.PlayLiquid then E.PlayLiquid(entry) end
     if E.PlayHalo then E.PlayHalo(entry) end
@@ -138,13 +141,14 @@ function E.UpdateEffects(entry, config)
         entry.secondaryEffect.nativeWanted=false
     end
     local level=entry.frame:GetFrameLevel()
-    if entry.artLayer then entry.artLayer:SetFrameLevel(level+2) end
+    if entry.artLayer then entry.artLayer:SetFrameLevel(level+(config.art=="skycutter" and 3 or 2)) end
     entry.effectsEnabled = (E.EffectProfiles[config.art] ~= nil or E.PriestArtworks[config.art]~=nil) and config.effects ~= false
     entry.nativeWanted = entry.effectsEnabled and config.nativeSmoke ~= false
     entry.nativeActive = false
     updateHiltEyeTrail(entry, config)
     updateWarlockShadow(entry, config)
     updateMultiEffects(entry, config)
+    if E.UpdateSkycutter then E.UpdateSkycutter(entry,config) end
     if E.UpdateLiquid then E.UpdateLiquid(entry, config) end
     if E.UpdateGlyphs then E.UpdateGlyphs(entry, config) end
     if E.UpdateArcane then E.UpdateArcane(entry, config) end

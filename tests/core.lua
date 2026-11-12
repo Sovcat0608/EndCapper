@@ -83,9 +83,13 @@ local function cap()
     end
     return c
 end
-function CreateFrame(_,_,parent)
+function CreateFrame(kind,name,parent)
     if parent then
         local layer={parent=parent,scripts={},shown=true,level=0}
+        function layer:GetName() return name end
+        function layer:IsObjectType(objectType) return kind==objectType end
+        function layer:GetParent() return self.parent end
+        function layer:SetParent(value) self.parent=value end
         function layer:SetNormalTexture(path) self.normal=path end
         function layer:SetHighlightTexture(path) self.highlight=path end
         function layer:SetScript(name,fn) self.scripts[name]=fn end
@@ -96,10 +100,11 @@ function CreateFrame(_,_,parent)
             if was~=shown and callback then callback(self) end
         end
         function layer:Hide() self:SetShown(false) end
-        function layer:IsVisible() return self.shown and parent:IsVisible() end
-        function layer:GetEffectiveScale() return parent:GetEffectiveScale() end
+        function layer:IsVisible() return self.shown and self.parent:IsVisible() end
+        function layer:GetEffectiveScale() return self.parent:GetEffectiveScale() end
         function layer:SetSize(w,h) self.width,self.height=w,h end
         function layer:GetSize() return self.width,self.height end
+        function layer:GetWidth() return self.width end
         function layer:GetHeight() return self.height end
         function layer:ClearAllPoints() self.point=nil end
         function layer:SetPoint(anchor,relative,_,x,y)
@@ -154,6 +159,27 @@ assert(visibilityDriver[1]==E.capRoot and visibilityDriver[2]=="visibility")
 assert(visibilityDriver[3]=="[petbattle][overridebar][vehicleui] hide; show")
 RegisterStateDriver=previousDriver
 local left,right=E.caps.left,E.caps.right
+-- Diagnostic command must neither open options nor refresh/restart the artwork.
+do
+    local oldPrint,oldOpen,oldApply=print,E.OpenOptions,E.Apply
+    local reports={}
+    print=function(text) reports[#reports+1]=text end
+    E.OpenOptions=function() error('hover report must not open options') end
+    E.Apply=function() error('hover report must not Apply') end
+    SlashCmdList.ENDCAPPER('hover')
+    assert(#reports==1 and reports[1]:find('not loaded',1,true))
+    E.caps.left.skycutter={};E.cornerCaps.right.skycutter={}
+    E.SkycutterHoverStatus=function(entry)
+        assert(entry==E.caps.left or entry==E.cornerCaps.right)
+        return 'diagnostic counter'
+    end
+    reports={};SlashCmdList.ENDCAPPER(' HOVER ')
+    assert(#reports==2 and reports[1]:find('end / left',1,true) and reports[2]:find('corner / right',1,true))
+    E.caps.left.skycutter=nil;E.cornerCaps.right.skycutter=nil;E.SkycutterHoverStatus=nil
+    print,E.OpenOptions,E.Apply=oldPrint,oldOpen,oldApply
+end
+print('PASS: hover diagnostic command reports both modes without Apply or options changes')
+
 MainActionBar = {EndCaps = {LeftEndCap = cap()}}
 eventFrame:event("PLAYER_LOGIN")
 assert(E.caps.left==left and E.caps.right==right and left.native and not right.native)
@@ -261,7 +287,7 @@ assert(left.native:GetAtlas()=="chimera" and not left.art.shown,"Default uses th
 E.Cancel(); E.Begin(); E.devMode=true
 E.draft.left.art='wolf'; E.draft.left.size=100; E.draft.left.flip=false
 E.SetDevEffect(E.draft.left,'trailX',30); E.SetDevEffect(E.draft.left,'trailY',15); E.Apply()
-assert(left.art.width==200 and left.art.height==100 and left.art.path:find('WorgenBlack.tga',1,true))
+assert(left.art.width==200 and left.art.height==100 and left.art.path:find('WorgenBlackCAS.tga',1,true))
 assertDragFrame(left)
 assert(not left.effects, 'rebuilt Worgen never allocates the old pupil or texture trails')
 for _,art in ipairs({'wolf','whiteWorgen'}) do
@@ -282,7 +308,7 @@ for _,art in ipairs({'wolf','whiteWorgen'}) do
 end
 E.draft.left.art='wolf';E.draft.left.flip=true;E.Commit()
 E.Begin();E.SelectArtwork(E.draft.left,'whiteWorgen','left');E.Cancel();E.Apply()
-assert(left.art.path:find('WorgenBlack.tga',1,true) and not left.effects)
+assert(left.art.path:find('WorgenBlackCAS.tga',1,true) and not left.effects)
 print('PASS: both Worgen art frames/facings, dev effects without custom fallback, size/offsets/selection and Cancel')
 -- Foreground ice is registered artwork, independent of native effect calibration.
 E.Begin()
@@ -295,7 +321,7 @@ for _,side in ipairs({'left','right'}) do
             E.draft[side].x=17;E.draft[side].y=22
             E.Apply(side)
             local overlay=e.artOverlay
-            assert(overlay and overlay.shown and overlay.path==E.artworkByID[art].overlay)
+            assert(overlay and overlay.shown and overlay.path==E.ArtworkTexture(E.artworkByID[art].overlay))
             assert(overlay.width==e.art.width and overlay.height==e.art.height)
             assert(overlay.point[2]==e.art and overlay.point[4]==0 and overlay.point[5]==0)
             assert(overlay.alpha==e.art.alpha and overlay.blend=='BLEND')
@@ -360,6 +386,45 @@ assert(EndCapperDB.launcher.x==1660 and EndCapperDB.launcher.y==806 and not E.la
 E.Begin();E.draft.launcher.shown=false;E.Apply();assert(not E.launcher.shown and not E.launcherHandle.shown)
 E.Cancel();E.Apply();assert(E.launcher.shown and E.launcher.cx==1660)
 print("PASS: launcher click, drag preview, Save/Cancel, and visibility preview")
+local launcher=E.launcher
+assert(launcher:GetParent()==UIParent,"standalone launcher lives under UIParent")
+local previousMinimap,previousAddOns=Minimap,C_AddOns
+Minimap=CreateFrame("Frame",nil,UIParent)
+function Minimap:GetEffectiveScale() return 1 end
+C_AddOns={IsAddOnLoaded=function(name) return name=="OneForAll" end}
+eventFrame:event("ADDON_LOADED","OneForAll")
+assert(E.launcher==launcher and launcher:GetParent()==Minimap)
+assert(launcher:GetName()=="EndCapperMinimapButton" and launcher:IsObjectType("Button"))
+assert(launcher:GetWidth()==40 and launcher:GetHeight()==40)
+E.Begin();E.Apply();drag({handle=E.launcherHandle},-100,-50)
+assert(math.abs(E.draft.launcher.x-1560)<0.00001 and math.abs(E.draft.launcher.y-756)<0.00001)
+local oldPoint=launcher.point
+local setPoint,clearPoints=launcher.SetPoint,launcher.ClearAllPoints
+-- OneForAll moves minimap children into its drawer and blocks their own anchors.
+local drawer=CreateFrame("Frame",nil,UIParent)
+local function blocked() error("collector owns launcher positioning") end
+launcher.SetPoint,launcher.ClearAllPoints=blocked,blocked
+launcher:SetParent(drawer)
+setPoint(launcher,"CENTER",drawer,"TOPLEFT",20,-20)
+assert(not E.launcherHandle.shown,"collector must be clickable with EndCapper options open")
+launcherClicked=false
+launcher.scripts.OnClick()
+assert(launcherClicked)
+E.draft.launcher.shown=false;E.Apply()
+assert(not launcher.shown)
+E.Cancel();E.Apply()
+assert(launcher.shown and launcher.point[1]==drawer)
+launcher.SetPoint,launcher.ClearAllPoints=setPoint,clearPoints
+launcher:SetParent(Minimap)
+launcher.point=oldPoint
+local deferred=table.remove(queue)
+deferred()
+assert(launcher.point[1]==UIParent and launcher.cx==1660*0.8 and launcher.cy==806*0.8)
+E.Begin();E.Apply()
+assert(E.launcherHandle.shown)
+E.Cancel();E.Apply()
+Minimap,C_AddOns=previousMinimap,previousAddOns
+print("PASS: OneForAll late load, discovery, drawer click, visibility preview, and saved position on release")
 EndCapperDB=E.Normalize({left={art='wolf'},right={art='lordaeron'}});E.Begin();E.SnapToBottom(E.draft,'left');E.Apply()
 local function floorCheck(entry,c)
     local _,h=entry.art:GetSize();local _,fh=entry.frame:GetSize()
@@ -519,19 +584,19 @@ combat=true;E.Apply();assert(E.activePositionLayout==narrow and E.pending)
 combat=false;E.Apply();assert(E.activePositionLayout==wide and EndCapperDB.pair.separation==900)
 assert(EndCapperDB.positionProfiles[wide].pair.separation==900 and not EndCapperDB.positionProfiles[wide].left.frameY,
     'a profile switch must not commit the drag or gap preview')
-assert(left.art.path==E.artworkByID.seraph.path and right.art.path==E.artworkByID.sanctum.path,
+assert(left.art.path==E.ArtworkTexture(E.artworkByID.seraph.path) and right.art.path==E.ArtworkTexture(E.artworkByID.sanctum.path),
     'a profile switch restores the saved linked artwork instead of the draft or outgoing selections')
 assert(left.frame.cx~=200 and EndCapperDB.left.frameBottom)
 layouts.activeLayout=5
 left.nativeFrame:SetPoint('BOTTOM',UIParent,'BOTTOMLEFT',200,130);right.nativeFrame:SetPoint('BOTTOM',UIParent,'BOTTOMLEFT',800,160)
 E.Apply();assert(EndCapperDB.left.x==33 and EndCapperDB.left.y==27 and EndCapperDB.left.size==125)
 assert(left.frame.cx==675 and left.frame.cy==92.5,'saved drag survives profile switch')
-assert(left.art.path==E.artworkByID.wolf.path and right.art.path==E.artworkByID.whiteWorgen.path)
+assert(left.art.path==E.ArtworkTexture(E.artworkByID.wolf.path) and right.art.path==E.ArtworkTexture(E.artworkByID.whiteWorgen.path))
 eventFrame:event('PLAYER_LOGOUT');assert(EndCapperDB.positionProfiles[narrow].left.x==33)
 -- Failed metadata must not block real rendering, even with existing profiles.
 E.Begin();C_EditMode.GetLayouts=function() error('temporarily unavailable') end
 E.SelectArtwork(E.draft.left,'whiteWorgen','left');E.draft.left.size=140;E.Apply('left')
-assert(left.art.path==E.artworkByID.whiteWorgen.path and left.art.width==280,'art/size preview survives profile lookup failure')
+assert(left.art.path==E.ArtworkTexture(E.artworkByID.whiteWorgen.path) and left.art.width==280,'art/size preview survives profile lookup failure')
 E.Commit();E.Apply()
 assert(EndCapperDB.left.art=='whiteWorgen' and EndCapperDB.left.size==140)
 assert(EndCapperDB.positionProfiles[narrow].left.size==125,'unknown layout must not overwrite the last known placement record')

@@ -1,10 +1,11 @@
 local _, E = ...
-E.schemaVersion = 41
+E.schemaVersion = 43
 -- Approved multi-art bake from applied 2026-11-10 save; see docs/rebake-rc14.md.
 E.UndeadArtworks={skull=true,lordaeron=true}
 E.WorgenArtworks={wolf=true,whiteWorgen=true}
 E.FrostmourneArtworks={frostmourneHilt=true,frostmourneBlade=true}
 E.WarlockArtworks={hexbound="Hexbound",soulbound="Soulbound"}
+E.ZephrasEffects={zephyr={"rangerWind","eerieGroundFog","skyWind"},skycutter={"rangerWind","eerieGroundFog","skyWind"}}
 E.UndercityEffects={
     cryptgate={"greenGroundFog","eerieGroundFog","candleFlame","amberEyeLeft","amberEyeRight"},
     plaguewell={"greenGroundFog","eerieGroundFog","lampGlow"},
@@ -17,6 +18,7 @@ E.SylvanasEffects={
 E.MultiEffects={}
 for art,ids in pairs(E.UndercityEffects) do E.MultiEffects[art]=ids end
 for art,ids in pairs(E.SylvanasEffects) do E.MultiEffects[art]=ids end
+for art,ids in pairs(E.ZephrasEffects) do E.MultiEffects[art]=ids end
 E.PriestArtworks={seraph="Seraph",sanctum="Sanctum",umbra="Umbra",eclipse="Eclipse"}
 E.HaloArtworks={seraph="SeraphHalo",umbra="UmbraHalo"}
 E.PriestEffectPairs={seraph={"holyGlow","sunRays"},sanctum={"holyGlow","sunRays"},
@@ -46,6 +48,23 @@ E.devArtworks.moonwell=true
 E.devArtworks.skull=true
 E.devArtworks.lordaeron=true
 E.devArtworks.whiteWorgen=true
+-- Approved Corner Cap bake, 2026-11-12 15:42:40: Zephyr left, Skycutter right.
+local zephrasDefaults={
+    zephyr={
+        rangerWind={nativeEffect="rangerWind",trailSize=50,trailAngle=180,trailX=-46,trailY=-34,trailOpacity=2,effectLayer="front"},
+        eerieGroundFog={nativeEffect="eerieGroundFog",trailSize=85,trailAngle=118,trailX=-9,trailY=-3,trailOpacity=30,effectLayer="front"},
+        skyWind={nativeEffect="skyWind",trailSize=50,trailAngle=90,trailX=-49,trailY=41,trailOpacity=1,effectLayer="front"},
+    },
+    skycutter={
+        rangerWind={nativeEffect="rangerWind",trailSize=55,trailAngle=8,trailX=46,trailY=-43,trailOpacity=2,effectLayer="front"},
+        eerieGroundFog={nativeEffect="eerieGroundFog",trailSize=91,trailAngle=74,trailX=5,trailY=-4,trailOpacity=36,effectLayer="front"},
+        skyWind={nativeEffect="skyWind",trailSize=50,trailAngle=81,trailX=61,trailY=41,trailOpacity=1,effectLayer="back"},
+    },
+}
+for art in pairs(E.ZephrasEffects) do
+    E.devArtworks[art]=true
+    E.EffectProfiles[art]=zephrasDefaults[art].rangerWind
+end
 -- Approved Corner Cap bake, 2026-11-12 00:24:31 UTC: General left, Banshee right.
 -- Artwork-relative calibration is shared by both modes; personal placement is not baked.
 local sylvanasDefaults={
@@ -143,6 +162,7 @@ E.effectChoices[#E.effectChoices+1]={id="candleFlame",name="Candle Flame"}
 E.effectChoices[#E.effectChoices+1]={id="amberEyeLeft",name="Left Eye Trail"}
 E.effectChoices[#E.effectChoices+1]={id="amberEyeRight",name="Right Eye Trail"}
 E.effectChoices[#E.effectChoices+1]={id="lampGlow",name="Amber Lamp Glow"}
+E.effectChoices[#E.effectChoices+1]={id="skyWind",name="Skywall Swirl"}
 for _,choice in ipairs({
     {id="rangerBloom",name="Luminance Bloom"},{id="bansheeCloud",name="Black Dungeon Fog"},
     {id="blueEyeLeft",name="Left Blue Eye Trail"},{id="blueEyeRight",name="Right Blue Eye Trail"},
@@ -151,6 +171,7 @@ for _,choice in ipairs({
 }) do E.effectChoices[#E.effectChoices+1]=choice end
 local thirdEffect = {frostmourneHilt = "coldFlame",hexbound="shadowGlow",soulbound="shadowGlow"}
 local function alternateEffect(art)
+    if E.ZephrasEffects[art] then return E.ZephrasEffects[art][2] end
     if E.SylvanasEffects[art] then return E.SylvanasEffects[art][2] end
     if E.UndercityEffects[art] then return "eerieGroundFog" end
     if E.WarlockArtworks[art] then return "felMagic" end
@@ -181,6 +202,7 @@ function E.CanSelectEffect(art, id)
 end
 function E.GetEffectDefaults(art, id)
     local profile=E.EffectProfiles[art] or E.SkullEffect
+    if E.ZephrasEffects[art] then return zephrasDefaults[art][id] or profile end
     if E.SylvanasEffects[art] then
         return sylvanasDefaults[art][id] or profile
     end
@@ -283,6 +305,8 @@ function E.SelectedEffect(config)
     return (E.EffectProfiles[config.art] or E.SkullEffect).nativeEffect
 end
 E.artworks = {
+    { id = "zephyr", name = "Zephyr", path = "Interface\\AddOns\\EndCapper\\Media\\Zephyr.tga", width=225, height=150 },
+    { id = "skycutter", name = "Skycutter", path = "Interface\\AddOns\\EndCapper\\Media\\Skycutter.tga", width=225, height=150 },
     { id = "banshee", name = "Banshee", path = "Interface\\AddOns\\EndCapper\\Media\\Banshee.tga", width=150, height=150 },
     { id = "highGeneral", name = "High General", path = "Interface\\AddOns\\EndCapper\\Media\\HighGeneral.tga", width=150, height=150 },
     { id = "cryptgate", name = "Cryptgate", path = "Interface\\AddOns\\EndCapper\\Media\\Cryptgate.tga", width=225, height=150 },
@@ -318,6 +342,7 @@ E.artworkByID = {}
 for _, artwork in ipairs(E.artworks) do E.artworkByID[artwork.id] = artwork end
 -- Chooser rows are also the authoritative sister relationships.
 E.ArtworkPairs={{"skull","lordaeron"},{"wolf","whiteWorgen"},{"moonbough","lunarRelic"},
+    {"zephyr","skycutter"},
     {"banshee","highGeneral"},
     {"cryptgate","plaguewell"},
     {"hexbound","soulbound"},
@@ -331,6 +356,7 @@ end
 -- Saved flip remains the actual texture/effect mirror state for compatibility.
 -- The UI checkbox reverses this artwork's default facing on the selected side.
 function E.DefaultMirror(art, side)
+    if E.ZephrasEffects[art] then return side==(art=="zephyr" and "left" or "right") end
     if E.SylvanasEffects[art] then return side==(art=="banshee" and "right" or "left") end
     if E.UndercityEffects[art] then return side==(art=="cryptgate" and "left" or "right") end
     if E.WarlockArtworks[art] then return side==(art=="hexbound" and "right" or "left") end
@@ -410,6 +436,15 @@ local function normalizeEffect(value, defaults)
 end
 local function normalizeDevArtwork(value, art)
     value=type(value)=="table" and value or {}
+    if E.ZephrasEffects[art] and value.zephrasVersion~=1 then
+        -- Sky Clouds occupied the old flat primary slot. Promote only the
+        -- saved whirlwind subrecord; never reinterpret cloud tuning as wind.
+        local migrated={}
+        for k,v in pairs(value) do migrated[k]=v end
+        local wind=type(value.rangerWind)=="table" and value.rangerWind or {}
+        for _,spec in ipairs(E.devEffectFields) do migrated[spec[1]]=wind[spec[1]] end
+        value=migrated
+    end
     -- Old flat Cold flame calibration belongs to the removed blue trail.
     -- New records always carry one of these two selected-effect identifiers.
     if E.UndeadArtworks[art] and value.selectedEffect~="amberFlow" and value.selectedEffect~="rotFog" then value={} end
@@ -417,6 +452,7 @@ local function normalizeDevArtwork(value, art)
     -- their own defaults while preserving all artwork/placement settings.
     if art=="stormhornTotem" and value.selectedEffect~="blueGlow" and value.selectedEffect~="broadFlame" and value.selectedEffect~="cloud" then value={} end
     local result=normalizeEffect(value,E.EffectProfiles[art])
+    if E.ZephrasEffects[art] then result.zephrasVersion=1 end
     if art=="violetSpire" then result.sealSize=number(value.sealSize,E.ArcaneSealSize,25,250) end
     local alternate=alternateEffect(art)
     if alternate then
@@ -785,6 +821,11 @@ function E.UV(coords, flip)
 end
 function E.Config()
     return E.draft or EndCapperDB
+end
+-- All custom artwork uses the accepted maximum-CAS bake.
+function E.ArtworkTexture(path)
+    if not path then return path end
+    return (path:gsub("(%.[^%.]+)$", "CAS%1"))
 end
 local function sameSettings(a,b)
     if type(a)~=type(b) then return false end

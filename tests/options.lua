@@ -3,6 +3,7 @@ local E={ready=true,caps={left={},right={}}}
 assert(loadfile('Model.lua'))('EndCapper',E)
 assert(loadfile("Clipping.lua"))("EndCapper", E)
 assert(loadfile('NativeSmoke.lua'))('EndCapper',E)
+assert(loadfile('Skycutter.lua'))('EndCapper',E)
 local function widget()
     local w={scripts={},shown=true,enabled=true}
     for _,name in ipairs({'SetFrameStrata','SetClampedToScreen','EnableMouse','SetMovable','RegisterForDrag',
@@ -205,6 +206,7 @@ print('PASS: Felwing dev radios, separate tuning/layers, report/reset and artwor
 local mirrorSide={cryptgate='left',plaguewell='right',hexbound='right',soulbound='left',frostmourneHilt='right',frostmourneBlade='left',seraph='left',sanctum='left',umbra='left',eclipse='left',skull='left',lordaeron='right',wolf='right',whiteWorgen='left',moonbough='left',verdantRoot='left',moonwell='left',
     lunarRelic='left',stormhornTotem='right',felwing='right',violetSpire='left',kirinTor='left',cinderforged='left',cindermaw='left',rimeforged='left',rimeguard='left'}
 mirrorSide.banshee='right';mirrorSide.highGeneral='left'
+mirrorSide.zephyr='left';mirrorSide.skycutter='right'
 EndCapperDB=E.Normalize(nil)
 for _,side in ipairs({'left','right'}) do
     E.OpenOptions(side)
@@ -464,7 +466,7 @@ end
 p.link:Click()
 assert(p.pairDropdown:IsShown() and not p.artDropdowns.left:IsShown() and not p.artDropdowns.right:IsShown())
 p.pairDropdown:GenerateMenu()
-assert(#p.pairDropdown.menuDescription.items==17 and p.pairDropdown.menuDescription.scrollHeight==280)
+assert(#p.pairDropdown.menuDescription.items==18 and p.pairDropdown.menuDescription.scrollHeight==280)
 for _,row in ipairs(E.ArtworkPairs) do
  choose(row[1])
  local left,right=row[1],row[2] or row[1]
@@ -844,3 +846,40 @@ for _,side in ipairs({'left','right'}) do
     p:Hide();assert(E.GetEffectConfig(EndCapperDB[side],ids[2]).trailX==16)
 end
 print('PASS: Sylvanas four/five dev radios, separate eye sliders, Save/reload and isolated Reset/Cancel')
+
+EndCapperDB=E.Normalize({left={art='zephyr'},right={art='skycutter'}})
+for _,side in ipairs({'left','right'}) do
+    E.OpenOptions(side)
+    local ids=E.ZephrasEffects[E.draft[side].art]
+    local visible=0
+    for _,radio in pairs(p.dev.radios) do if radio.shown then visible=visible+1 end end
+    assert(visible==3 and p.dev.note.text:find('Both winds',1,true))
+    for i,id in ipairs(ids) do
+        assert(p.dev.radios[id].shown and p.dev.radios[id].enabled)
+        p.dev.radios[id]:Click()
+        p.dev.sliders.trailX:SetValue(i*8)
+        p.dev.sliders.trailOpacity:SetValue(i*12)
+    end
+    p.save:Click();p:Hide();EndCapperDB=E.Normalize(EndCapperDB)
+    for i,id in ipairs(ids) do
+        local c=E.GetEffectConfig(EndCapperDB[side],id)
+        assert(c.trailX==i*8 and c.trailOpacity==i*12)
+    end
+    E.OpenOptions(side);p.dev.radios.rangerWind:Click();p.dev.reset:Click()
+    assert(E.GetEffectConfig(E.draft[side],'eerieGroundFog').trailX==16)
+    p:Hide();assert(E.GetEffectConfig(EndCapperDB[side],'rangerWind').trailX==8)
+end
+print('PASS: Zephras three dev radios, independent sliders, Save/reload and isolated Reset/Cancel')
+
+EndCapperDB=E.Normalize({left={art='skycutter'},right={art='skycutter'}})
+E.OpenOptions('right')
+assert(p.dev.boatComparison==nil,'No filter comparison control may override baseline defaults')
+assert(not E.HasChanges())
+p.left:Click();p.right:Click();assert(not E.HasChanges())
+p.modeTabs.corner:Click();choose('skycutter','right')
+assert(p.dev.boatComparison==nil and p.dev.radios.rangerWind.shown)
+p:Hide();assert(not E.HasChanges())
+print('PASS: Skycutter filter comparisons removed, native effect controls preserved in both modes')
+
+
+assert(p.casSharpening==nil,'CAS is standard, not a menu option')

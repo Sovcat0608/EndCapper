@@ -8,7 +8,7 @@ assert.deepEqual([...sample.subarray(8,12)],[3,8,2,1], 'Raw BGRA must request AR
 assert.deepEqual([...sample.subarray(sample.readUInt32LE(24))],[0,0,255,64]);
 assert.throws(()=>buildBLP(Buffer.alloc(3*2*4),3,2),/power-of-two/);
 const external=JSON.parse(fs.readFileSync('tools/external-media.json','utf8'));
-for(const [name,width] of [['SeraphHalo',512],['UmbraHalo',512],['ArcaneCrystal',256],['ArcaneSigil',256],['SoulboundCrystal',256],['SoulboundCrystalEmission',256]]) {
+for(const [name,width] of [['SkycutterBoatRefined',1024],['SkycutterBoat',1024],['SeraphHalo',512],['UmbraHalo',512],['ArcaneCrystal',256],['ArcaneSigil',256],['SoulboundCrystal',256],['SoulboundCrystalEmission',256]]) {
   const mipCount=Math.log2(width)+1;
   const rel=`Media/${name}.blp`,file=fs.existsSync(rel)?rel:external[rel],b=fs.readFileSync(file);
   assert.equal(b.toString('ascii',0,4),'BLP2');

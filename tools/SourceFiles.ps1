@@ -1,6 +1,6 @@
 # Player-only allowlist shared by packaging and installation.
 function Get-EndCapperRuntimeFiles {
-    @('EndCapper.toc', 'Model.lua', 'Layouts.lua', 'Clipping.lua', 'NativeSmoke.xml', 'NativeSmoke.lua', 'Glyphs.lua', 'Liquid.lua', 'Arcane.lua', 'Molten.lua', 'Frost.lua', 'Moonwell.lua', 'Halos.lua', 'Effects.lua', 'Core.lua', 'Options.lua')
+    @('EndCapper.toc', 'Model.lua', 'Layouts.lua', 'Clipping.lua', 'NativeSmoke.xml', 'NativeSmoke.lua', 'Glyphs.lua', 'Liquid.lua', 'Arcane.lua', 'Skycutter.lua', 'Molten.lua', 'Frost.lua', 'Moonwell.lua', 'Halos.lua', 'Effects.lua', 'Core.lua', 'Options.lua')
 }
 
 function Get-EndCapperPackageFiles {
@@ -9,6 +9,16 @@ function Get-EndCapperPackageFiles {
     foreach($name in @('Undead','Lordaeron')) {$files += "Media/$name.tga"}
     $files += @('Media/KirinTor.tga','Media/EcapLogo.tga')
     $files += @('Media/Banshee.tga','Media/HighGeneral.tga')
+    $files += @('Media/Zephyr.tga','Media/Skycutter.tga','Media/SkycutterBoatStaticProbe.tga')
+    foreach($source in (Get-Content -LiteralPath (Join-Path $PSScriptRoot 'artwork-cas.json') -Raw | ConvertFrom-Json)) {
+        $files += ($source -replace '\.(tga|blp)$','CAS.$1')
+    }
+    foreach($size in @(192,288,384,480,576,768,960)) {$files += "Media/SkycutterBoatSize$size.tga"}
+    foreach($size in @(192,288,384,480,576,768,960)) {$files += "Media/SkycutterBoatCASSize$size.tga"}
+    $files += 'THIRD-PARTY-CAS.txt'
+    foreach($name in @('ArcaneCrystal','ArcaneSigil','SoulboundCrystal','SoulboundCrystalEmission')) {
+        foreach($size in @(64,96,128,192,256)) {$files += @("Media/${name}CASSize$size.tga","Media/${name}Size$size.tga")}
+    }
     $files += @('Media/Cryptgate.tga','Media/Plaguewell.tga','Media/CryptgateLiquidAtlas.tga','Media/PlaguewellLiquidAtlas.tga')
     foreach($name in @('Hexbound','Soulbound')) {
         foreach($suffix in @('','Emission','Bloom')) {$files += "Media/$name$suffix.tga"}
@@ -21,7 +31,13 @@ function Get-EndCapperPackageFiles {
     foreach ($art in @('Moonbough','VerdantRoot','LunarRelic','StormhornTotem','Felwing','FelwingGlyphAtlas','VioletSpire','Cinderforged','Cindermaw','CinderforgedEmission','CinderforgedBloom','CindermawEmission','CindermawBloom','Rimeforged','Rimeguard','RimeforgedRunes','RimeforgedRunesBloom','RimeforgedIce','RimeforgedIceBloom','RimeguardRunes','RimeguardRunesBloom','RimeguardIce','RimeguardIceBloom','RimeguardEyes','RimeguardEyesBloom')) {
         $files += "Media/$art.tga"
     }
-    return $files
+    # Originals and comparison variants remain build sources, not player payloads.
+    $originalArtwork=@(Get-Content -LiteralPath (Join-Path $PSScriptRoot 'artwork-cas.json') -Raw | ConvertFrom-Json)
+    return @($files | Where-Object {
+        $originalArtwork -notcontains $_ -and
+        $_ -notmatch '^Media/(SkycutterBoat|ArcaneCrystal|ArcaneSigil|SoulboundCrystal|SoulboundCrystalEmission)Size\d+\.tga$' -and
+        $_ -notmatch '^Media/(ArcaneCrystal|ArcaneSigil|SoulboundCrystal|SoulboundCrystalEmission)\.blp$'
+    })
 }
 
 function Resolve-EndCapperSource([string]$Root,[string]$Relative) {

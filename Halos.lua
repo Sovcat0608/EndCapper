@@ -42,7 +42,7 @@ function E.UpdateHalo(entry,config)
     s.host:ClearAllPoints()
     s.host:SetPoint("CENTER",entry.art,"CENTER",(config.flip and -1 or 1)*tuning.x*width/150,tuning.y*height/150)
     -- Stored mip levels reduce shimmer when the detailed ring is scaled down.
-    s.texture:SetTexture(media..E.HaloArtworks[config.art]..".blp","CLAMP","CLAMP","TRILINEAR")
+    s.texture:SetTexture(E.ArtworkTexture(media..E.HaloArtworks[config.art]..".blp"),"CLAMP","CLAMP","TRILINEAR")
     if s.texture.SetSnapToPixelGrid then s.texture:SetSnapToPixelGrid(false) end
     if s.texture.SetTexelSnappingBias then s.texture:SetTexelSnappingBias(0) end
     s.texture:SetSize(diameter,diameter);s.texture:SetTexCoord(E.UV(uv,config.flip))

@@ -35,7 +35,7 @@ local state=e.liquid;local t,h=state.texture,state.host
 assert(h.shown and h.scripts.OnUpdate and h.alpha==.6 and h.level==13)
 assert(h.endCapperClip and h.endCapperClip.clips and h.parent==h.endCapperClip)
 assert(h.endCapperClip.point[5]==-300*506/512)
-assert(t.path:find('CryptgateLiquidAtlas.tga',1,true) and t.blend=='BLEND')
+assert(t.path:find('CryptgateLiquidAtlasCAS.tga',1,true) and t.blend=='BLEND')
 assert(t.width==450*44/512 and t.height==300*68/512)
 assert(t.point[4]==450*196/512 and t.point[5]==-300*434/512)
 assert(t.uv[1]==2/1024 and t.uv[5]==126/1024)
@@ -53,7 +53,7 @@ e.frame.scripts.OnShow();assert(not h.shown)
 e.frame.hidden=false;e.frame.scripts.OnShow();assert(h.shown and state.elapsed==phase)
 local n=#hosts
 E.UpdateEffects(e,E.NormalizeSide({art='plaguewell'},'right'))
-assert(e.liquid==state and #hosts==n and t.path:find('PlaguewellLiquidAtlas.tga',1,true))
+assert(e.liquid==state and #hosts==n and t.path:find('PlaguewellLiquidAtlasCAS.tga',1,true))
 assert(t.width==450*38/512 and t.height==300*94/512 and h.endCapperClip.point[5]==-300*505/512)
 E.UpdateEffects(e,E.NormalizeSide({art='hidden'},'left'))
 assert(not h.shown and not state.enabled and not h.scripts.OnUpdate)
@@ -62,3 +62,10 @@ c.effects=true;E.UpdateEffects(e,c);assert(h.shown and #hosts==n)
 local other={alpha=1,frame=surface(),art=e.art};E.UpdateEffects(other,c)
 assert(other.liquid~=state and other.liquid.elapsed==0,'independent cap and corner instances')
 print('PASS: liquid timing/wrap, registration/scaling/mirroring, clipping, reuse, control isolation and lifecycle')
+
+local casDB=EndCapperDB
+EndCapperDB={casSharpening=false};E.UpdateEffects(e,c)
+assert(e.liquid.texture.path:find('CryptgateLiquidAtlasCAS.tga',1,true),'legacy CAS off cannot disable standard sharpening')
+EndCapperDB={casSharpening=true};E.UpdateEffects(e,c)
+assert(e.liquid.texture.path:find('CryptgateLiquidAtlasCAS.tga',1,true),'standard sharpening remains on')
+EndCapperDB=casDB

@@ -1,6 +1,6 @@
 local E={}
 assert(loadfile('Model.lua'))('EndCapper',E)
-assert(E.schemaVersion==41 and #E.artworks==30)
+assert(E.schemaVersion==43 and #E.artworks==32)
 assert(E.PairByArt.wolf==E.PairByArt.whiteWorgen)
 for _,side in ipairs({'left','right'}) do
     local db=E.Normalize({version=31,[side]={art='wolf',size=133,x=17,y=23,flip=true,

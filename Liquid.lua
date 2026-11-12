@@ -44,9 +44,10 @@ function E.UpdateLiquid(entry,config)
             draw(state)
         end
     end
-    if state.art~=config.art then
-        state.texture:SetTexture("Interface\\AddOns\\EndCapper\\Media\\"..region.name.."LiquidAtlas.tga","CLAMP","CLAMP","LINEAR")
-        state.art=config.art;state.index=nil
+    local path=E.ArtworkTexture("Interface\\AddOns\\EndCapper\\Media\\"..region.name.."LiquidAtlas.tga")
+    if state.path~=path then
+        state.texture:SetTexture(path,"CLAMP","CLAMP","LINEAR")
+        state.path=path;state.art=config.art;state.index=nil
     end
     state.enabled=true;state.flip=config.flip
     state.host:SetFrameLevel(entry.frame:GetFrameLevel()+3)

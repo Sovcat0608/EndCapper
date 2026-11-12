@@ -160,13 +160,15 @@ local function startCapDrag(entry,handle)
     end)
 end
 
+local launcherCollected, launcherOnMinimap
+
 function E.UpdateDragHandles()
     local editing=E.draft and E.panel and E.panel:IsShown() and not InCombatLockdown()
     local mode=editing and E.draft.mode
     for _,caps in ipairs({E.caps,E.cornerCaps}) do
         for _,entry in pairs(caps) do entry.handle:SetShown(mode==entry.mode and entry.owned or false) end
     end
-    if E.launcherHandle then E.launcherHandle:SetShown(editing and E.draft.launcher.shown or false) end
+    if E.launcherHandle then E.launcherHandle:SetShown(editing and E.draft.launcher.shown and not launcherCollected or false) end
 end
 
 local function colorDragOutline(handle,selected)
@@ -210,21 +212,23 @@ end
 
 local launcherSize=40
 local function keepLauncherOnScreen(position,extent)
-    local half=launcherSize/2
+    local half=launcherSize*E.launcher:GetEffectiveScale()/UIParent:GetEffectiveScale()/2
     return math.max(half,math.min(extent-half,position))
 end
 
 local function placeLauncher(config)
+    if launcherCollected then return end
     local width,height=UIParent:GetWidth(),UIParent:GetHeight()
     local x=keepLauncherOnScreen(config.x or width-240,width)
     local y=keepLauncherOnScreen(config.y or height-44,height)
+    local scale=UIParent:GetEffectiveScale()/E.launcher:GetEffectiveScale()
     E.launcher:ClearAllPoints()
-    E.launcher:SetPoint("CENTER",UIParent,"BOTTOMLEFT",x,y)
+    E.launcher:SetPoint("CENTER",UIParent,"BOTTOMLEFT",x*scale,y*scale)
 end
 
 local function startLauncherDrag(handle)
     local db=E.draft
-    if InCombatLockdown() or not db or not db.launcher.shown or not handle:IsVisible() then return end
+    if InCombatLockdown() or launcherCollected or not db or not db.launcher.shown or not handle:IsVisible() then return end
     local x,y=frameScreenPosition(E.launcher)
     if not x then return end
     local config=db.launcher
@@ -238,9 +242,9 @@ local function startLauncherDrag(handle)
     end)
 end
 
-local function updateLauncher(config)
+local function updateLauncher(config, oneForAllLoaded)
     if not E.launcher then
-        local button=CreateFrame("Button",nil,UIParent)
+        local button=CreateFrame("Button","EndCapperMinimapButton",UIParent)
         button:SetSize(launcherSize,launcherSize)
         button:SetFrameStrata("HIGH")
         button:SetNormalTexture("Interface\\AddOns\\EndCapper\\Media\\EcapLogo.tga")
@@ -248,6 +252,26 @@ local function updateLauncher(config)
         button:SetScript("OnClick",function() E.OpenOptions() end)
         E.launcher=button
         E.launcherHandle=createDragHandle(button,startLauncherDrag)
+    end
+    if not launcherOnMinimap and Minimap and
+        (oneForAllLoaded or C_AddOns and C_AddOns.IsAddOnLoaded("OneForAll")) then
+        launcherOnMinimap=true
+        E.launcher:SetParent(Minimap)
+        -- The collector reparents the button and restores its old anchors when released.
+        hooksecurefunc(E.launcher,"SetParent",function(_,parent)
+            local wasCollected=launcherCollected
+            launcherCollected=parent~=Minimap and parent~=UIParent
+            if launcherCollected then
+                E.launcherHandle:Hide()
+            elseif wasCollected then
+                C_Timer.After(0,function()
+                    if InCombatLockdown() then return end
+                    local current=E.Config().launcher
+                    if current.shown then placeLauncher(current) end
+                    E.UpdateDragHandles()
+                end)
+            end
+        end)
     end
     if config.shown then placeLauncher(config) end
     E.launcher:SetShown(config.shown)
@@ -291,7 +315,7 @@ local function renderCap(entry,db)
     if entry.artOverlay then entry.artOverlay:Hide() end
     if entry.owned then
         local width,height=artwork.width,artwork.height
-        art:SetTexture(artwork.path)
+        art:SetTexture(E.ArtworkTexture(artwork.path))
         art:SetTexCoord(E.UV({0,0,0,1,1,0,1,1},flip))
         art:SetSize(width*c.size/100,height*c.size/100)
         entry.frame:SetSize(art:GetSize())
@@ -315,7 +339,7 @@ local function renderCap(entry,db)
                 entry.artOverlay=overlay
                 overlay:SetBlendMode("BLEND")
             end
-            overlay:SetTexture(artwork.overlay)
+            overlay:SetTexture(E.ArtworkTexture(artwork.overlay))
             overlay:SetSize(width*c.size/100,height*c.size/100)
             overlay:SetTexCoord(E.UV({0,0,0,1,1,0,1,1},flip))
             overlay:SetAlpha(entry.alpha)
@@ -527,6 +551,19 @@ events:SetScript("OnEvent", function(_, event, name)
                 E.devMode=cmd~="dev off" and (cmd=="dev on" or not E.devMode)
                 message(E.devMode and "Developer mode on: artwork effect calibration unlocked." or "Developer mode off. Applied calibration is retained.")
                 E.OpenOptions()
+            elseif cmd=="hover" then
+                local found=false
+                for _,mode in ipairs({"end","corner"}) do
+                    local caps=capsForMode(mode)
+                    for _,side in ipairs({"left","right"}) do
+                        local entry=caps and caps[side]
+                        if entry and entry.skycutter then
+                            message(mode.." / "..side..": "..E.SkycutterHoverStatus(entry))
+                            found=true
+                        end
+                    end
+                end
+                if not found then message("Skycutter not loaded in either mode.") end
             elseif cmd=="status" then
                 local caps=capsForMode(E.Config().mode)
                 for _, side in ipairs({"left", "right"}) do
@@ -537,6 +574,9 @@ events:SetScript("OnEvent", function(_, event, name)
     end
     if not E.ready then return end
     if event=="ADDON_LOADED" and name~=addonName then
+        if name=="OneForAll" and E.launcher and not InCombatLockdown() then
+            updateLauncher(E.Config().launcher,true)
+        end
         E.Attach(name~="Bartender4")
         if name=="Bartender4" and not InCombatLockdown() and E.RefreshOptions then E.RefreshOptions() end
         return
