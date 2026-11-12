@@ -203,6 +203,7 @@ print('PASS: Felwing dev radios, separate tuning/layers, report/reset and artwor
 -- Checkbox reverses the per-artwork default, while stored flip stays a raw mirror.
 local mirrorSide={cryptgate='left',plaguewell='right',hexbound='right',soulbound='left',frostmourneHilt='right',frostmourneBlade='left',seraph='left',sanctum='left',umbra='left',eclipse='left',skull='left',lordaeron='right',wolf='right',whiteWorgen='left',moonbough='left',verdantRoot='left',moonwell='left',
     lunarRelic='left',stormhornTotem='right',felwing='right',violetSpire='left',kirinTor='left',cinderforged='left',cindermaw='left',rimeforged='left',rimeguard='left'}
+mirrorSide.banshee='right';mirrorSide.highGeneral='left'
 EndCapperDB=E.Normalize(nil)
 for _,side in ipairs({'left','right'}) do
     E.OpenOptions(side)
@@ -460,7 +461,7 @@ end
 p.link:Click()
 assert(p.pairDropdown:IsShown() and not p.artDropdowns.left:IsShown() and not p.artDropdowns.right:IsShown())
 p.pairDropdown:GenerateMenu()
-assert(#p.pairDropdown.menuDescription.items==16 and p.pairDropdown.menuDescription.scrollHeight==280)
+assert(#p.pairDropdown.menuDescription.items==17 and p.pairDropdown.menuDescription.scrollHeight==280)
 for _,row in ipairs(E.ArtworkPairs) do
  choose(row[1])
  local left,right=row[1],row[2] or row[1]
@@ -799,3 +800,27 @@ E.OpenOptions('left');assert(not p.dev.radios.lampGlow.shown)
 p.modeTabs.corner:Click();assert(E.GetEffectConfig(E.draft.left,'amberEyeLeft').trailX==-27)
 p:Hide()
 print('PASS: Undercity five/three effect controls, independent eyes/lamp glow, Save/reload, isolated Reset/Cancel and mode tuning')
+
+EndCapperDB=E.Normalize({left={art='banshee'},right={art='highGeneral'}})
+for _,side in ipairs({'left','right'}) do
+    E.OpenOptions(side)
+    local ids=E.SylvanasEffects[E.draft[side].art]
+    local visible=0
+    for _,radio in pairs(p.dev.radios) do if radio.shown then visible=visible+1 end end
+    assert(visible==#ids and p.dev.note.text:find(side=='right' and 'All five run' or 'All four run',1,true))
+    for i,id in ipairs(ids) do
+        assert(p.dev.radios[id].shown and p.dev.radios[id].enabled)
+        p.dev.radios[id]:Click()
+        p.dev.sliders.trailX:SetValue(i*8)
+        p.dev.sliders.trailOpacity:SetValue(i*12)
+    end
+    p.save:Click();p:Hide();EndCapperDB=E.Normalize(EndCapperDB)
+    for i,id in ipairs(ids) do
+        local c=E.GetEffectConfig(EndCapperDB[side],id)
+        assert(c.trailX==i*8 and c.trailOpacity==i*12)
+    end
+    E.OpenOptions(side);p.dev.radios[ids[2]]:Click();p.dev.reset:Click()
+    assert(E.GetEffectConfig(E.draft[side],ids[3]).trailX==24)
+    p:Hide();assert(E.GetEffectConfig(EndCapperDB[side],ids[2]).trailX==16)
+end
+print('PASS: Sylvanas four/five dev radios, separate eye sliders, Save/reload and isolated Reset/Cancel')

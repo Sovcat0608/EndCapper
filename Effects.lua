@@ -56,8 +56,9 @@ local function updateWarlockShadow(entry, config)
     shadow.nativeActive=E.UpdateNativeSmoke(shadow,E.GetEffectConfig(config,"shadowGlow"))
 end
 
-local function updateUndercityEffects(entry, config)
-    local ids=E.UndercityEffects[config.art]
+local function updateMultiEffects(entry, config)
+    -- Keep the existing pool field so load callbacks/status retain the same ownership.
+    local ids=E.MultiEffects[config.art]
     local wanted={}
     if ids and entry.nativeWanted and E.UpdateNativeSmoke then
         entry.undercityEffects=entry.undercityEffects or {}
@@ -143,7 +144,7 @@ function E.UpdateEffects(entry, config)
     entry.nativeActive = false
     updateHiltEyeTrail(entry, config)
     updateWarlockShadow(entry, config)
-    updateUndercityEffects(entry, config)
+    updateMultiEffects(entry, config)
     if E.UpdateLiquid then E.UpdateLiquid(entry, config) end
     if E.UpdateGlyphs then E.UpdateGlyphs(entry, config) end
     if E.UpdateArcane then E.UpdateArcane(entry, config) end
@@ -163,9 +164,9 @@ function E.UpdateEffects(entry, config)
         E.PlayEffects(entry);return
     end
     if not entry.effectsEnabled then stopUnusedNative(entry);return end
-    if E.UndercityEffects[config.art] then
+    if E.MultiEffects[config.art] then
         if E.UpdateNativeSmoke then
-            entry.nativeActive=E.UpdateNativeSmoke(entry,E.GetEffectConfig(config,"greenGroundFog"))
+            entry.nativeActive=E.UpdateNativeSmoke(entry,E.GetEffectConfig(config,E.MultiEffects[config.art][1]))
         end
         stopUnusedNative(entry)
         E.PlayEffects(entry)

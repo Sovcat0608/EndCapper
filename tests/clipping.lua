@@ -107,6 +107,23 @@ local function checkNative(entry,config,scene,level)
     local insets=scene.SetViewInsetsValue
     assert(insets and insets[1]==0 and insets[2]==0 and insets[3]==0 and insets[4]==0,
         "camera insets do not establish the physical particle boundary")
+    local profile=E.NativeEffectProfiles[config.nativeEffect]
+    if profile and profile.fixedViewport then
+        local densityViewport=288*(entry.art.width/150)*config.trailSize/100
+        local x,y=E.EffectAnchor(E.EffectEmitters[1],entry.art.width,entry.art.height,config)
+        assert(v==densityViewport*2 and h==densityViewport*2+entry.art.height*2)
+        assert(math.abs(bottom-baseline)<.00001,'fixed smoke viewport must still end at art baseline')
+        local translate=scene.SetViewTranslationValue
+        assert(math.abs(scene.point[5]+translate[2]-y)<.00001)
+        assert(scene.point[4]==x and translate[1]==0)
+        local tangent=math.tan(scene.SetCameraFieldOfViewValue[1]/2)
+        for _,depth in ipairs({4,8,12}) do
+            local expected=densityViewport/(2*depth*(3/8))
+            assert(math.abs(h/(2*depth*tangent)-expected)<.00001)
+            assert(math.abs(v/(2*depth*tangent*(v/h))-expected)<.00001)
+        end
+        return
+    end
     assert(h>0 and h<=v)
     if bottom+h<=baseline then
         assert(scene.alpha==0,"fully cropped scenes must have zero alpha and a valid viewport")
@@ -143,7 +160,9 @@ for _,art in ipairs(E.artworks) do
                 checkNative(e,c,primary,10+(c.effectLayer=="back" and 1 or (art.id=="violetSpire" or art.id=="soulbound") and 4 or 3))
                 -- Width stays fixed; the physical height stops at the baseline.
                 local expected=288*(e.art.width/150)*c.trailSize/100
-                assert(math.abs(primary.width-expected)<.00001 and primary.height<=primary.width)
+                local fixed=E.NativeEffectProfiles[c.nativeEffect].fixedViewport
+                assert(math.abs(primary.width-expected*(fixed and 2 or 1))<.00001)
+                if not fixed then assert(primary.height<=primary.width) end
                 local x,y,direction=E.EffectAnchor(E.EffectEmitters[1],e.art.width,e.art.height,c)
                 local profile=E.NativeEffectProfiles[e.nativeSmoke.profileID]
                 if not profile.centered then x=x+direction*.5*expected/6;y=y+.15*expected/6 end
@@ -224,3 +243,31 @@ local old=entry();old.frame.SetClipsChildren=nil
 E.UpdateEffects(old,E.GetEffectConfig(E.NormalizeSide({art="felwing"},"left")))
 assert(not old.glyphs.host.endCapperClip)
 print("PASS: native bottom-only crop/projection for 18 designs, custom masks, both facings/scales, paired layers, whole-scene crop/recovery, anchor motion, reuse, visibility, combat and capability fallbacks")
+
+-- Reproduce the reported smoke slider case: Y may only translate the picture,
+-- never resize its render target, alter its FOV, model scale or reload its actor.
+local smokeEntry=entry()
+for _,flip in ipairs({false,true}) do
+    for _,size in ipairs({50,100,150,200}) do
+        local smoke=E.GetEffectConfig(E.NormalizeSide({art='banshee',flip=flip},'left'),'bansheeCloud')
+        smoke.trailSize=size
+        E.UpdateEffects(smokeEntry,smoke)
+        E.UpdateNativeSmoke(smokeEntry,smoke)
+        local smokeScene=smokeEntry.nativeSmoke.slots[1].scene
+        local w,h,fov=smokeScene.width,smokeScene.height,smokeScene.SetCameraFieldOfViewValue[1]
+        local actor=smokeEntry.nativeSmoke.slots[1].actor
+        local scale=actor.SetScaleValue[1]
+        for _,y in ipairs({-150,-75,0,75,150}) do
+            smoke.trailY=y
+            E.UpdateNativeSmoke(smokeEntry,smoke)
+            checkNative(smokeEntry,smoke,smokeScene,smoke.effectLayer=='front' and 13 or 11)
+            assert(smokeScene.width==w and smokeScene.height==h and smokeScene.SetCameraFieldOfViewValue[1]==fov)
+            assert(actor.SetScaleValue[1]==scale)
+        end
+    end
+end
+-- Switching away clears the fixed-window translation and restores ordinary crop geometry.
+local ordinary=E.GetEffectConfig(E.NormalizeSide({art='skull'},'left'))
+E.UpdateEffects(smokeEntry,ordinary)
+checkNative(smokeEntry,ordinary,smokeEntry.nativeSmoke.slots[1].scene,13)
+print('PASS: Banshee fixed smoke viewport/FOV across Y and size ranges, stable projection, bottom cutoff, both mirrors and ordinary-effect restoration')

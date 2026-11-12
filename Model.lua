@@ -9,6 +9,14 @@ E.UndercityEffects={
     cryptgate={"greenGroundFog","eerieGroundFog","candleFlame","amberEyeLeft","amberEyeRight"},
     plaguewell={"greenGroundFog","eerieGroundFog","lampGlow"},
 }
+E.SylvanasEffects={
+    banshee={"bansheeCloud","redEyeLeft","redEyeRight","voidGlow"},
+    highGeneral={"rangerBloom","blueEyeLeft","blueEyeRight","rangerWind","sunRays"},
+}
+-- Explicit per-art lists share the established independently pooled scene lifecycle.
+E.MultiEffects={}
+for art,ids in pairs(E.UndercityEffects) do E.MultiEffects[art]=ids end
+for art,ids in pairs(E.SylvanasEffects) do E.MultiEffects[art]=ids end
 E.PriestArtworks={seraph="Seraph",sanctum="Sanctum",umbra="Umbra",eclipse="Eclipse"}
 E.HaloArtworks={seraph="SeraphHalo",umbra="UmbraHalo"}
 E.PriestEffectPairs={seraph={"holyGlow","sunRays"},sanctum={"holyGlow","sunRays"},
@@ -38,6 +46,27 @@ E.devArtworks.moonwell=true
 E.devArtworks.skull=true
 E.devArtworks.lordaeron=true
 E.devArtworks.whiteWorgen=true
+-- Approved Corner Cap bake, 2026-11-12 00:24:31 UTC: General left, Banshee right.
+-- Artwork-relative calibration is shared by both modes; personal placement is not baked.
+local sylvanasDefaults={
+    banshee={
+        bansheeCloud={nativeEffect="bansheeCloud",trailSize=118,trailAngle=16,trailX=24,trailY=-131,trailOpacity=24,effectLayer="front"},
+        redEyeLeft={nativeEffect="redEyeLeft",trailSize=60,trailAngle=104,trailX=-1,trailY=44,trailOpacity=39,effectLayer="front"},
+        redEyeRight={nativeEffect="redEyeRight",trailSize=60,trailAngle=-113,trailX=10,trailY=44,trailOpacity=36,effectLayer="front"},
+        voidGlow={nativeEffect="voidGlow",trailSize=150,trailAngle=-1,trailX=14,trailY=21,trailOpacity=22,effectLayer="front"},
+    },
+    highGeneral={
+        rangerBloom={nativeEffect="rangerBloom",trailSize=124,trailAngle=90,trailX=-12,trailY=-16,trailOpacity=12,effectLayer="front"},
+        blueEyeLeft={nativeEffect="blueEyeLeft",trailSize=60,trailAngle=113,trailX=-9,trailY=46,trailOpacity=55,effectLayer="front"},
+        blueEyeRight={nativeEffect="blueEyeRight",trailSize=60,trailAngle=-96,trailX=3,trailY=44,trailOpacity=27,effectLayer="front"},
+        rangerWind={nativeEffect="rangerWind",trailSize=68,trailAngle=-119,trailX=-3,trailY=-41,trailOpacity=1,effectLayer="front"},
+        sunRays={nativeEffect="sunRays",trailSize=121,trailAngle=-66,trailX=-13,trailY=17,trailOpacity=1,effectLayer="front"},
+    },
+}
+for art,ids in pairs(E.SylvanasEffects) do
+    E.devArtworks[art]=true
+    E.EffectProfiles[art]=sylvanasDefaults[art][ids[1]]
+end
 for art in pairs(E.UndercityEffects) do
     E.devArtworks[art]=true
     -- Corner-mode bake, 2026-11-11 21:21:12 UTC: left Cryptgate / right Plaguewell.
@@ -114,8 +143,15 @@ E.effectChoices[#E.effectChoices+1]={id="candleFlame",name="Candle Flame"}
 E.effectChoices[#E.effectChoices+1]={id="amberEyeLeft",name="Left Eye Trail"}
 E.effectChoices[#E.effectChoices+1]={id="amberEyeRight",name="Right Eye Trail"}
 E.effectChoices[#E.effectChoices+1]={id="lampGlow",name="Amber Lamp Glow"}
+for _,choice in ipairs({
+    {id="rangerBloom",name="Luminance Bloom"},{id="bansheeCloud",name="Black Dungeon Fog"},
+    {id="blueEyeLeft",name="Left Blue Eye Trail"},{id="blueEyeRight",name="Right Blue Eye Trail"},
+    {id="redEyeLeft",name="Left Red Eye Trail"},{id="redEyeRight",name="Right Red Eye Trail"},
+    {id="rangerWind",name="Gentle Whirlwind"},
+}) do E.effectChoices[#E.effectChoices+1]=choice end
 local thirdEffect = {frostmourneHilt = "coldFlame",hexbound="shadowGlow",soulbound="shadowGlow"}
 local function alternateEffect(art)
+    if E.SylvanasEffects[art] then return E.SylvanasEffects[art][2] end
     if E.UndercityEffects[art] then return "eerieGroundFog" end
     if E.WarlockArtworks[art] then return "felMagic" end
     if E.FrostmourneArtworks[art] then return "frostMist" end
@@ -131,8 +167,8 @@ local function alternateEffect(art)
     if art=="verdantRoot" then return "faerieFire" end
 end
 local function usesSeparateTuning(art, id)
-    if E.UndercityEffects[art] then
-        for index,effect in ipairs(E.UndercityEffects[art]) do
+    if E.MultiEffects[art] then
+        for index,effect in ipairs(E.MultiEffects[art]) do
             if index>1 and id==effect then return true end
         end
         return false
@@ -145,11 +181,15 @@ function E.CanSelectEffect(art, id)
 end
 function E.GetEffectDefaults(art, id)
     local profile=E.EffectProfiles[art] or E.SkullEffect
+    if E.SylvanasEffects[art] then
+        return sylvanasDefaults[art][id] or profile
+    end
     if E.UndercityEffects[art] then
         if id=="eerieGroundFog" then
+            -- Corner Cap calibration from the 2026-11-11 22:25:49 UTC save.
             local crypt=art=="cryptgate"
             return {nativeEffect=id,trailSize=crypt and 121 or 133,trailAngle=crypt and 143 or 40,
-                trailX=crypt and -9 or -21,trailY=crypt and -43 or -113,trailOpacity=24,effectLayer="front"}
+                trailX=crypt and -9 or -15,trailY=crypt and -43 or -113,trailOpacity=16,effectLayer="front"}
         elseif art=="plaguewell" and id=="lampGlow" then
             -- Painted lamp centre: u~0.57, v~0.426. Normal mirroring follows the cap.
             return {nativeEffect=id,trailSize=70,trailAngle=90,trailX=11,trailY=11,trailOpacity=35,effectLayer="front"}
@@ -243,6 +283,8 @@ function E.SelectedEffect(config)
     return (E.EffectProfiles[config.art] or E.SkullEffect).nativeEffect
 end
 E.artworks = {
+    { id = "banshee", name = "Banshee", path = "Interface\\AddOns\\EndCapper\\Media\\Banshee.tga", width=150, height=150 },
+    { id = "highGeneral", name = "High General", path = "Interface\\AddOns\\EndCapper\\Media\\HighGeneral.tga", width=150, height=150 },
     { id = "cryptgate", name = "Cryptgate", path = "Interface\\AddOns\\EndCapper\\Media\\Cryptgate.tga", width=225, height=150 },
     { id = "plaguewell", name = "Plaguewell", path = "Interface\\AddOns\\EndCapper\\Media\\Plaguewell.tga", width=225, height=150 },
     { id = "hexbound", name = "Hexbound", path = "Interface\\AddOns\\EndCapper\\Media\\Hexbound.tga", width=225, height=150 },
@@ -276,6 +318,7 @@ E.artworkByID = {}
 for _, artwork in ipairs(E.artworks) do E.artworkByID[artwork.id] = artwork end
 -- Chooser rows are also the authoritative sister relationships.
 E.ArtworkPairs={{"skull","lordaeron"},{"wolf","whiteWorgen"},{"moonbough","lunarRelic"},
+    {"banshee","highGeneral"},
     {"cryptgate","plaguewell"},
     {"hexbound","soulbound"},
     {"verdantRoot","moonwell"},{"stormhornTotem"},{"felwing"},
@@ -288,6 +331,7 @@ end
 -- Saved flip remains the actual texture/effect mirror state for compatibility.
 -- The UI checkbox reverses this artwork's default facing on the selected side.
 function E.DefaultMirror(art, side)
+    if E.SylvanasEffects[art] then return side==(art=="banshee" and "right" or "left") end
     if E.UndercityEffects[art] then return side==(art=="cryptgate" and "left" or "right") end
     if E.WarlockArtworks[art] then return side==(art=="hexbound" and "right" or "left") end
     if E.FrostmourneArtworks[art] then return side==(art=="frostmourneHilt" and "right" or "left") end
@@ -384,7 +428,7 @@ local function normalizeDevArtwork(value, art)
             selected=alternate
         end
         result.selectedEffect=usesSeparateTuning(art,selected) and selected or E.EffectProfiles[art].nativeEffect
-        for _, id in ipairs(E.UndercityEffects[art] or {alternate,thirdEffect[art]}) do
+        for _, id in ipairs(E.MultiEffects[art] or {alternate,thirdEffect[art]}) do
             if usesSeparateTuning(art,id) and type(value[id])=="table" then
                 result[id]=normalizeEffect(value[id],E.GetEffectDefaults(art,id))
             end

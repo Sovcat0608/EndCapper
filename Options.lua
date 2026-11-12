@@ -133,6 +133,11 @@ function E.RefreshOptions()
         p.dev.note:SetText(c.art=="cryptgate" and "All five run. Each eye trail is independent."
             or "Both fogs + lamp glow run. Select one to edit.")
     end
+    if E.SylvanasEffects[c.art] then
+        p.dev.heading:SetText("Developer: "..side.." effects")
+        p.dev.note:SetText(c.art=="highGeneral" and "All five run. Each eye trail is independent."
+            or "All four run. Each eye trail is independent.")
+    end
     if E.WorgenArtworks[c.art] then
         p.dev.heading:SetText("Developer: "..side.." effects")
         p.dev.note:SetText("Trail + gloom run together. Select one to edit.")

@@ -1,8 +1,8 @@
 # EndCapper
 
-**Version 1.4.2 for World of Warcraft: Forever.**
+**Version 1.4.3 for World of Warcraft: Forever.**
 
-Decorate your action bars and screen corners with 26 fantasy designs. Mix and match artwork or link matching pairs, then adjust placement, size and mirroring from EndCapper’s own panel.
+Decorate your action bars and screen corners with 28 fantasy designs. Mix and match artwork or link matching pairs, then adjust placement, size and mirroring from EndCapper’s own panel.
 
 ## Install or update
 
@@ -33,6 +33,8 @@ Animated effects stop at the artwork's bottom edge. This cutoff follows artwork 
 
 | Design | Effects |
 | --- | --- |
+| Banshee | Undead Sylvanas, with black dungeon fog, two red flame eye trails and Void Glow |
+| High General | Living Sylvanas, with golden luminance bloom, Divine Radiance, two blue eye trails and a gentle whirlwind |
 | Undead | Decaying undead face with amber eyes, blue banners and green-lit ruins, with Amber Flow and Rot Fog |
 | Lordaeron | Ruined crypt arches and bones, with Amber Flow and Rot Fog |
 | Shadowfang | Battle-scarred black Worgen with blue eyes and Gilnean tree, with blue spectral trail and Gloom |

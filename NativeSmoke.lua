@@ -2,6 +2,25 @@ local _, E = ...
 -- NativeSmoke names remain internal for compatibility.
 -- Emitter coordinates were inspected in the model data; see docs/native-smoke.md.
 E.NativeEffectProfiles = {
+    -- Sylvanas: existing inspected native assets, independent IDs for each eye.
+    rangerBloom={fileID=166034,name="Luminance Bloom",emitterX=0,emitterY=0,emitterZ=0,
+        modelScale=2,opacity=0.8,centered=true},
+    -- Black dungeon fog: alpha-blended smoke surfaces, authored RGB 9/255.
+    -- Centre its measured bounds; retain the fixed viewport for vertical tuning.
+    bansheeCloud={fileID=1713498,name="Black Dungeon Fog",emitterX=11.0514602661,emitterY=-14.9769515991,emitterZ=34.8938217163,
+        modelScale=0.015,animation=0,opacity=0.8,centered=true,fixedViewport=true},
+    blueEyeLeft={fileID=165995,name="Left Blue Eye Trail",emitterX=-0.1388888955,emitterY=0,emitterZ=0,
+        modelScale=0.5,opacity=0.8,centered=true},
+    blueEyeRight={fileID=165995,name="Right Blue Eye Trail",emitterX=-0.1388888955,emitterY=0,emitterZ=0,
+        modelScale=0.5,opacity=0.8,centered=true},
+    redEyeLeft={fileID=166011,name="Left Red Eye Trail",emitterX=-0.1388888955,emitterY=0,emitterZ=0,
+        modelScale=0.5,opacity=0.8,centered=true},
+    redEyeRight={fileID=166011,name="Right Red Eye Trail",emitterX=-0.1388888955,emitterY=0,emitterZ=0,
+        modelScale=0.5,opacity=0.8,centered=true},
+    -- Skywall updraft: 5.3/6.7-second rotations and a 2.1-second UV scroll,
+    -- with constant mesh opacity. Stand keeps the persistent ambient wind.
+    rangerWind={fileID=445680,name="Gentle Whirlwind",emitterX=-0.0001710653,emitterY=-0.0011721849,emitterZ=2.3160927296,
+        modelScale=0.55,animation=0,opacity=0.8,centered=true},
     -- Keep saved tuning keys; replace the original ground fog models.
     -- Rot Fog matches Undead; BlueRadiationFog inspected in Forever 1.60.1.70888.
     greenGroundFog={fileID=166280,name="Rot Fog",emitterX=0,emitterY=0,emitterZ=0,
@@ -233,9 +252,9 @@ function E.UpdateNativeSmoke(entry, config)
         for _, slot in ipairs(state.slots) do
             local frontLevel=(config.art=="violetSpire" or config.art=="soulbound") and 4 or 3
             slot.scene:SetFrameLevel(entry.frame:GetFrameLevel()+(config.effectLayer=="back" and 1 or frontLevel))
-            -- Native colours are intentional for all effects (0.8.2).
+            -- Reset pooled scenes to native colour unless this profile opts out.
             if slot.scene.SetDesaturation then
-                slot.scene:SetDesaturation(0)
+                slot.scene:SetDesaturation(p.desaturation or 0)
             end
             local x, y, direction = E.EffectAnchor(slot.eye, width, height, config)
             local artScale = (width/150)*slot.eye.scale
@@ -264,7 +283,7 @@ function E.UpdateNativeSmoke(entry, config)
             -- approved flame's asymmetric render room and calibration.
             if p.centered then biasX,biasY=0,0 end
             slot.cropVisible=E.CropNativeEffect(entry,config,slot.scene,viewport,
-                x+biasX*pixelsPerUnit,y+biasY*pixelsPerUnit)
+                x+biasX*pixelsPerUnit,y+biasY*pixelsPerUnit,p)
             -- Put the inspected origin on the chosen point and camera depth plane.
             local modelScale=p.modelScale or 1
             slot.actor:SetScale(modelScale)

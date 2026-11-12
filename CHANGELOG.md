@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.4.3 — 2026-11-12
+
+- Added **Banshee / High General**, a matching Sylvanas sister pair, bringing the collection to **28 custom designs**.
+- Banshee features black dungeon fog, two red eye trails and Void Glow.
+- High General features golden luminance bloom, Divine Radiance, two blue eye trails and a gentle whirlwind.
+- Baked the approved effect size, position, angle, opacity and layer settings for both sisters into End Cap and Corner Cap defaults.
+- Fixed Banshee smoke resizing during vertical adjustment while retaining the artwork's bottom cutoff.
+- Updated Cryptgate and Plaguewell's Blue Mist defaults from the latest Corner Cap calibration.
+
 ## 1.4.2
 
 - Save and restore each layout’s selected artwork, mirroring and linked pair order in both cap modes.

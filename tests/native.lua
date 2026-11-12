@@ -836,3 +836,15 @@ do
 end
 print('PASS: Frostmourne mist/glow plus one hilt-only native eye trail, mirrored origins, opacity isolation, reuse and cleanup')
 
+do
+    local e=entry()
+    assert(E.UpdateNativeSmoke(e,{art='banshee',nativeEffect='bansheeCloud'}))
+    local slot=e.nativeSmoke.slots[1]
+    assert(slot.actor.fileID==1713498 and slot.actor.animation[1]==0)
+    assert(slot.scene.SetDesaturationValue[1]==0,'black dungeon fog keeps its authored neutral colour')
+    assert(E.UpdateNativeSmoke(e,{art='highGeneral',nativeEffect='rangerWind'}))
+    assert(slot.actor.fileID==445680 and slot.actor.animation[1]==0)
+    assert(slot.scene.SetDesaturationValue[1]==0,'reused scene restores native colour for the whirlwind')
+end
+print('PASS: Banshee black dungeon fog, continuous whirlwind animation and native colour')
+

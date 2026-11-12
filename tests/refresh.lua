@@ -319,3 +319,43 @@ for _,extra in pairs(extras) do assert(not extra.nativeSmoke.slots[1].scene.show
 E.Cancel();E.Apply();advance(0)
 assert(eyeA.slots[1].scene.shown and eyeB.slots[1].scene.shown)
 print('PASS: Undercity dedicated eye scenes, simultaneous native models, opacity isolation, radio reuse, side/mode isolation, hide/art-change cleanup and Cancel')
+
+EndCapperDB=E.Normalize({left={art='banshee'},right={art='highGeneral'}})
+E.Begin();E.Apply();advance(0)
+local sylvanasCaps={left=E.caps.left,right=E.caps.right}
+for _,side in ipairs({'left','right'}) do
+    local cap=sylvanasCaps[side]
+    local ids=E.SylvanasEffects[E.draft[side].art]
+    local expected=side=='left' and {1713498,166011,166011,166009} or {166034,165995,165995,445680,610642}
+    local states={cap.nativeSmoke}
+    for i=2,#ids do states[i]=cap.undercityEffects[ids[i]].nativeSmoke end
+    assert(states[2]~=states[3] and states[2].slots[1].scene~=states[3].slots[1].scene)
+    local calls={}
+    for i,state in ipairs(states) do
+        assert(state.slots[1].scene.shown and state.slots[1].actor.id==expected[i])
+        calls[i]=state.slots[1].actor.modelCalls
+    end
+    for _,id in ipairs(ids) do
+        E.SelectEffect(E.draft[side],id);E.Apply(side);advance(0)
+        for i,state in ipairs(states) do
+            assert(state.slots[1].scene.shown and state.slots[1].actor.modelCalls==calls[i])
+        end
+    end
+    E.SelectEffect(E.draft[side],ids[2]);E.SetDevEffect(E.draft[side],'trailOpacity',0);E.Apply(side);advance(0)
+    assert(states[2].slots[1].scene.alpha==0 and states[3].slots[1].scene.alpha>0)
+end
+E.SelectMode(E.draft,'corner');E.draft.enabled=true;E.Apply();advance(0)
+for _,side in ipairs({'left','right'}) do
+    local cap=E.cornerCaps[side]
+    local ids=E.SylvanasEffects[E.draft[side].art]
+    assert(cap.nativeSmoke~=sylvanasCaps[side].nativeSmoke)
+    for i=2,#ids do assert(cap.undercityEffects[ids[i]].nativeSmoke.slots[1].scene.shown) end
+end
+E.SelectArtwork(E.draft.left,'cryptgate','left');E.Apply('left','corner');advance(0)
+for _,id in ipairs({'redEyeLeft','redEyeRight','voidGlow'}) do
+    assert(not E.cornerCaps.left.undercityEffects[id].nativeSmoke.slots[1].scene.shown)
+end
+assert(E.cornerCaps.right.undercityEffects.blueEyeLeft.nativeSmoke.slots[1].scene.shown)
+E.Cancel();E.Apply();advance(0)
+assert(sylvanasCaps.left.undercityEffects.redEyeLeft.nativeSmoke.slots[1].scene.alpha>0)
+print('PASS: Sylvanas four/five simultaneous models per cap, independent eyes, stable selection, both modes, art-change cleanup and Cancel')

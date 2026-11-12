@@ -2,6 +2,7 @@ local _, E = ...
 -- Visible basal edges measured in the runtime textures, top to bottom.
 -- These are horizontal cutoffs, not masks of the full artwork silhouette.
 E.EffectBaselines = {
+    banshee=506/512, highGeneral=503/512,
     cryptgate=506/512, plaguewell=505/512,
     hexbound=461/512, soulbound=473/512,
     frostmourneHilt=467/512, frostmourneBlade=467/512,
@@ -42,9 +43,24 @@ function E.ClipEffect(entry, config, frame, level)
     frame:SetFrameLevel(level)
 end
 
-function E.CropNativeEffect(entry, config, scene, viewport, centreX, centreY)
+function E.CropNativeEffect(entry, config, scene, viewport, centreX, centreY, profile)
     local baseline=E.EffectBaselines[config.art]
     local _,height=entry.art:GetSize()
+    if profile and profile.fixedViewport and baseline and scene.SetViewTranslation then
+        -- Large smoke billboards must not see a different viewport/FOV for each Y.
+        -- Hold the physical bottom on the art baseline; translate the projection
+        -- inside a generous fixed rectangle instead. Size still sets pixel density.
+        local renderWidth=viewport*2
+        local renderHeight=viewport*2+height*2
+        local frameCentreY=-height*baseline+renderHeight/2
+        scene:SetSize(renderWidth,renderHeight)
+        scene:ClearAllPoints()
+        scene:SetPoint("CENTER",entry.art,"TOPLEFT",centreX,frameCentreY)
+        if scene.SetViewInsets then scene:SetViewInsets(0,0,0,0) end
+        scene:SetCameraFieldOfView(2*math.atan(3*renderHeight/(8*viewport)))
+        scene:SetViewTranslation(0,centreY-frameCentreY)
+        return true
+    end
     local bottom,visible=0,true
     if baseline and scene.SetViewTranslation then
         -- All coordinates are relative to artwork TOP. Moving the artwork/cap

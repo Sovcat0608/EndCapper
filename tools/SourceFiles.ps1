@@ -8,6 +8,7 @@ function Get-EndCapperPackageFiles {
     foreach($name in @('Seraph','Sanctum','Umbra','Eclipse')) {$files += "Media/$name.tga"}
     foreach($name in @('Undead','Lordaeron')) {$files += "Media/$name.tga"}
     $files += @('Media/KirinTor.tga','Media/EcapLogo.tga')
+    $files += @('Media/Banshee.tga','Media/HighGeneral.tga')
     $files += @('Media/Cryptgate.tga','Media/Plaguewell.tga','Media/CryptgateLiquidAtlas.tga','Media/PlaguewellLiquidAtlas.tga')
     foreach($name in @('Hexbound','Soulbound')) {
         foreach($suffix in @('','Emission','Bloom')) {$files += "Media/$name$suffix.tga"}
