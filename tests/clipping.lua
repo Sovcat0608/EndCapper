@@ -1,6 +1,6 @@
 -- Integration mock: clipping geometry and hierarchy, not GPU rasterization.
 local E={}
-for _,file in ipairs({"Model","Clipping","NativeSmoke","Glyphs","Arcane","Molten","Frost","Moonwell","Halos","Effects"}) do
+for _,file in ipairs({"Model","Clipping","NativeSmoke","Glyphs","Arcane","MageBooks","Molten","Frost","Moonwell","Halos","Effects"}) do
     assert(loadfile(file..".lua"))("EndCapper",E)
 end
 local allocations,combat=0,false
@@ -33,6 +33,8 @@ local function surface(parent)
     function s:HookScript(k,fn) self.scripts[k]=fn end
     function s:SetScript(k,fn) self.scripts[k]=fn end
     function s:CreateTexture() return surface(self) end
+    function s:CreateMaskTexture() return surface(self) end
+    function s:AddMaskTexture(mask) self.mask=mask end
     function s:CreateAnimationGroup()
         local g={animations={},parent=self}
         function g:SetLooping(v) self.loop=v end
@@ -157,7 +159,7 @@ local function checkNative(entry,config,scene,level)
     end
 end
 for _,art in ipairs(E.artworks) do
-    if art.path then
+    if art.path and not E.MageArtworks[art.id] then
         assert(E.EffectBaselines[art.id],"missing artwork baseline: "..art.id)
         local e=entry()
         for _,mirror in ipairs({false,true}) do
@@ -200,6 +202,25 @@ for _,art in ipairs(E.artworks) do
         E.UpdateEffects(e,E.NormalizeSide({art="hidden"},"left"))
         assert(not e.nativeSmoke.slots[1].scene.shown)
     end
+end
+-- Book-only sisters retain their complete registered glow without a scroll crop.
+for art in pairs(E.MageArtworks) do
+    local e=entry()
+    for _,mirror in ipairs({false,true}) do
+        for _,scale in ipairs({.5,1,2}) do
+            e.art:SetSize(225*scale,225*scale)
+            local c=E.NormalizeSide({art=art,flip=mirror},"left")
+            E.UpdateEffects(e,c)
+            local s=e.mageBooks
+            assert(e.nativeSmoke and s.bookHost.parent==e.frame and not s.bookHost.clips)
+            assert(s.bookGlowHost.parent==e.frame and not s.bookGlowHost.endCapperClip)
+            assert(s.baseHost==nil and s.shadow==nil)
+            assert(s.bookHost.point[4]==s.bookGlowHost.point[4] and s.bookHost.point[5]==s.bookGlowHost.point[5])
+            local n=allocations;E.UpdateEffects(e,c);assert(allocations==n,"mage clips are reused")
+        end
+    end
+    E.UpdateEffects(e,E.NormalizeSide({art="hidden"},"left"))
+    assert(not e.mageBooks.bookHost.shown and not e.mageBooks.bookGlowHost.shown)
 end
 -- Offsets/dragging follow the art without changing the selection frame; back
 -- and front layers can swap independently on already allocated paired scenes.

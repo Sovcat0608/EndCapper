@@ -1,10 +1,16 @@
 # Player-only allowlist shared by packaging and installation.
 function Get-EndCapperRuntimeFiles {
-    @('EndCapper.toc', 'Model.lua', 'Layouts.lua', 'Clipping.lua', 'NativeSmoke.xml', 'NativeSmoke.lua', 'Glyphs.lua', 'Liquid.lua', 'Arcane.lua', 'Skycutter.lua', 'Molten.lua', 'Frost.lua', 'Moonwell.lua', 'Halos.lua', 'Effects.lua', 'Core.lua', 'Options.lua')
+    @('EndCapper.toc', 'Model.lua', 'Layouts.lua', 'Clipping.lua', 'NativeSmoke.xml', 'NativeSmoke.lua', 'Glyphs.lua', 'Liquid.lua', 'Arcane.lua', 'Skycutter.lua', 'MageBooks.lua', 'MageSigils.lua', 'Molten.lua', 'Frost.lua', 'Moonwell.lua', 'Halos.lua', 'Effects.lua', 'Core.lua', 'Options.lua')
 }
 
 function Get-EndCapperPackageFiles {
     $files = (Get-EndCapperRuntimeFiles) + @('README.md', 'LICENSE', 'CHANGELOG.md')
+    foreach($name in @('ColdsnapDetails','ColdsnapPupilAtlas','ColdsnapFlowAtlas','CombustionSeal','CombustionFlameAtlas')) {$files += "Media/$name.tga"}
+    foreach($name in @('Frostbound','Emberbound')) {
+        foreach($size in @(192,288,384,480,576,768,887)) {
+            foreach($suffix in @('CAS','Emission','Bloom')) {$files += "Media/${name}Book${suffix}Size$size.tga"}
+        }
+    }
     foreach($name in @('Seraph','Sanctum','Umbra','Eclipse')) {$files += "Media/$name.tga"}
     foreach($name in @('Undead','Lordaeron')) {$files += "Media/$name.tga"}
     $files += @('Media/KirinTor.tga','Media/EcapLogo.tga')
@@ -31,10 +37,13 @@ function Get-EndCapperPackageFiles {
     foreach ($art in @('Moonbough','VerdantRoot','LunarRelic','StormhornTotem','Felwing','FelwingGlyphAtlas','VioletSpire','Cinderforged','Cindermaw','CinderforgedEmission','CinderforgedBloom','CindermawEmission','CindermawBloom','Rimeforged','Rimeguard','RimeforgedRunes','RimeforgedRunesBloom','RimeforgedIce','RimeforgedIceBloom','RimeguardRunes','RimeguardRunesBloom','RimeguardIce','RimeguardIceBloom','RimeguardEyes','RimeguardEyesBloom')) {
         $files += "Media/$art.tga"
     }
-    # Originals and comparison variants remain build sources, not player payloads.
+    # Static bases use originals; animated layers retain CAS. Comparison variants stay build-only.
     $originalArtwork=@(Get-Content -LiteralPath (Join-Path $PSScriptRoot 'artwork-cas.json') -Raw | ConvertFrom-Json)
+    $baselineArtwork=@(Get-Content -LiteralPath (Join-Path $PSScriptRoot 'baseline-artwork.json') -Raw | ConvertFrom-Json)
+    $baselineCAS=@($baselineArtwork | ForEach-Object { $_ -replace '\.(tga|blp)$','CAS.$1' })
     return @($files | Where-Object {
-        $originalArtwork -notcontains $_ -and
+        ($originalArtwork -notcontains $_ -or $baselineArtwork -contains $_) -and
+        $baselineCAS -notcontains $_ -and
         $_ -notmatch '^Media/(SkycutterBoat|ArcaneCrystal|ArcaneSigil|SoulboundCrystal|SoulboundCrystalEmission)Size\d+\.tga$' -and
         $_ -notmatch '^Media/(ArcaneCrystal|ArcaneSigil|SoulboundCrystal|SoulboundCrystalEmission)\.blp$'
     })

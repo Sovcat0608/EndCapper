@@ -26,6 +26,8 @@ local function surface()
     function t:ClearAllPoints() self.point=nil end
     function t:SetPoint(...) self.point={...} end
     function t:CreateTexture() return surface() end
+    function t:CreateMaskTexture() return surface() end
+    function t:AddMaskTexture(mask) self.mask=mask end
     function t:CreateAnimationGroup()
         local g={animations={},owner=self,plays=0}
         function g:SetLooping(v) self.loop=v end
@@ -358,3 +360,53 @@ for _,enabled in ipairs({false,true}) do
 end
 GetPhysicalScreenSize=savedPhysical;EndCapperDB=casDB
 print('PASS: standard CAS ignores legacy flags and preserves size, UV, texel settings and boat motion')
+
+local function legacyBook(config,key,value)
+    config.books=config.books or {};config.books[config.art]=config.books[config.art] or {}
+    config.books[config.art][key]=value
+end
+assert(loadfile('MageBooks.lua'))('EndCapper',E)
+supportsSnapping=true
+local mage=entry();mage.art.GetSize=function()return 225,225 end
+mage.frame.GetEffectiveScale=function()return 1 end
+GetPhysicalScreenSize=function()return 1366,768 end
+local mageConfig=E.NormalizeSide({art='frostbound',flip=false},'left')
+now=0;E.UpdateEffects(mage,mageConfig)
+local m=mage.mageBooks
+assert(m and m.enabled and m.animate and m.bookHost.shown and m.bookGlowHost.shown)
+assert(mage.effectsEnabled and mage.nativeWanted,'mage native effects coexist with book animation')
+assert(m.textureSize==192 and m.book.width==162 and m.book.snap==false and m.book.bias==0 and m.book.filter==nil)
+assert(m.bookHost.level==14 and m.bookGlowHost.level==15)
+assert(m.baseHost==nil and m.baseLayers==nil and m.shadow==nil,'no retired scroll/shadow layers')
+assert(m.bookHost.point[5]==30-(162*.012+2) and m.bookGlowHost.point[5]==m.bookHost.point[5])
+assert(m.bookLayers[1].texture.uv[4]==.75 and m.book.uv[4]==.75)
+for _,motion in ipairs(m.motions) do
+    assert(motion.group.playing and motion.legs[1].duration==3 and motion.legs[2].duration==3)
+    assert(motion.legs[1].smoothing=='IN_OUT' and motion.legs[1].y==162*.024+4 and motion.legs[2].y==-(162*.024+4))
+end
+local second=entry();second.art.GetSize=mage.art.GetSize
+E.UpdateEffects(second,E.NormalizeSide({art='emberbound'},'right'))
+local secondPlays=second.mageBooks.motions[1].group.plays
+now=2.25;E.UpdateEffects(mage,mageConfig)
+assert(m.motions[1].group.offset==2.25 and m.motions[2].group.offset==2.25 and m.bookLayers[1].group.offset==2.25)
+assert(second.mageBooks.motions[1].group.plays==secondPlays)
+mage.frame.hidden=true;mage.frame.scripts.OnHide();assert(not m.bookHost.shown and not m.motions[1].group.playing)
+now=25;mage.frame.hidden=false;mage.frame.scripts.OnShow();assert(m.motions[1].group.offset==2.25)
+E.devMode=true;legacyBook(mageConfig,'size',150);legacyBook(mageConfig,'x',20);mageConfig.flip=true
+E.UpdateEffects(mage,mageConfig)
+assert(m.book.width==243 and m.textureSize==288 and m.bookHost.point[4]==-20 and m.book.uv[1]==288/512)
+assert(m.bookLayers[1].texture.uv[1]==m.book.uv[1] and m.bookLayers[1].texture.width==243)
+local anchorX,anchorY=m.bookHost.point[4],m.bookHost.point[5]
+legacyBook(mageConfig,'flip',true);E.UpdateEffects(mage,mageConfig)
+assert(m.book.uv[1]==0 and m.bookLayers[1].texture.uv[1]==0 and m.bookLayers[2].texture.uv[1]==0)
+assert(m.bookHost.point[4]==anchorX and m.bookHost.point[5]==anchorY,'book flip retains the anchor')
+legacyBook(mageConfig,'flip',false);E.UpdateEffects(mage,mageConfig)
+assert(m.book.uv[1]==288/512)
+legacyBook(mageConfig,'y',200);E.UpdateEffects(mage,mageConfig)
+legacyBook(mageConfig,'y',30);E.UpdateEffects(mage,mageConfig)
+mageConfig.effects=false;E.UpdateEffects(mage,mageConfig)
+assert(m.bookHost.shown and not m.bookGlowHost.shown and not m.motions[1].group.playing)
+assert(m.bookHost.point[5]==30,'static book returns to neutral anchor')
+E.UpdateEffects(mage,E.NormalizeSide({art='skull'},'left'));assert(not m.enabled and not m.bookHost.shown)
+GetPhysicalScreenSize=savedPhysical
+print('PASS: independent mage native hover/pulse timelines, registered sizes/UVs, phase, mirror, texel settings, static fallback and cleanup')

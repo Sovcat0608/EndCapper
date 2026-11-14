@@ -206,7 +206,8 @@ local selection=left.nativeFrame.Selection
 local nativePoints=left.nativeFrame.points
 local function assertDragFrame(c)
     assert(c.handle.allPoints==c.frame and c.frame.parent==E.capRoot and E.capRoot.parent==UIParent)
-    assert(c.frame.width==c.art.width and c.frame.height==c.art.height)
+    if c.art.path then assert(c.frame.width==c.art.width and c.frame.height==c.art.height)
+    else assert(c.frame.width>0 and c.frame.height>0) end
     assert(c.nativeFrame.Selection.width==154 and c.nativeFrame.Selection.height==95)
 end
 assertDragFrame(left);assertDragFrame(right)
@@ -287,7 +288,7 @@ assert(left.native:GetAtlas()=="chimera" and not left.art.shown,"Default uses th
 E.Cancel(); E.Begin(); E.devMode=true
 E.draft.left.art='wolf'; E.draft.left.size=100; E.draft.left.flip=false
 E.SetDevEffect(E.draft.left,'trailX',30); E.SetDevEffect(E.draft.left,'trailY',15); E.Apply()
-assert(left.art.width==200 and left.art.height==100 and left.art.path:find('WorgenBlackCAS.tga',1,true))
+assert(left.art.width==200 and left.art.height==100 and left.art.path:find('WorgenBlack.tga',1,true))
 assertDragFrame(left)
 assert(not left.effects, 'rebuilt Worgen never allocates the old pupil or texture trails')
 for _,art in ipairs({'wolf','whiteWorgen'}) do
@@ -308,7 +309,7 @@ for _,art in ipairs({'wolf','whiteWorgen'}) do
 end
 E.draft.left.art='wolf';E.draft.left.flip=true;E.Commit()
 E.Begin();E.SelectArtwork(E.draft.left,'whiteWorgen','left');E.Cancel();E.Apply()
-assert(left.art.path:find('WorgenBlackCAS.tga',1,true) and not left.effects)
+assert(left.art.path:find('WorgenBlack.tga',1,true) and not left.effects)
 print('PASS: both Worgen art frames/facings, dev effects without custom fallback, size/offsets/selection and Cancel')
 -- Foreground ice is registered artwork, independent of native effect calibration.
 E.Begin()
@@ -321,7 +322,7 @@ for _,side in ipairs({'left','right'}) do
             E.draft[side].x=17;E.draft[side].y=22
             E.Apply(side)
             local overlay=e.artOverlay
-            assert(overlay and overlay.shown and overlay.path==E.ArtworkTexture(E.artworkByID[art].overlay))
+            assert(overlay and overlay.shown and overlay.path==E.artworkByID[art].overlay)
             assert(overlay.width==e.art.width and overlay.height==e.art.height)
             assert(overlay.point[2]==e.art and overlay.point[4]==0 and overlay.point[5]==0)
             assert(overlay.alpha==e.art.alpha and overlay.blend=='BLEND')
@@ -428,6 +429,13 @@ print("PASS: OneForAll late load, discovery, drawer click, visibility preview, a
 EndCapperDB=E.Normalize({left={art='wolf'},right={art='lordaeron'}});E.Begin();E.SnapToBottom(E.draft,'left');E.Apply()
 local function floorCheck(entry,c)
     local _,h=entry.art:GetSize();local _,fh=entry.frame:GetSize()
+    local bounds=E.MageBookBounds[c.art]
+    if bounds then
+        local tuning=E.GetBookConfig(c);local bookWidth=entry.art.width*.72*tuning.size/100
+        local bottom=entry.frame:GetBottom()+fh/2+entry.art.point[5]+tuning.y*h/225-(bookWidth*.012+2)+bookWidth*(.5-bounds[4]/887)
+        assert(math.abs(entry.frame:GetBottom())<.00001 and math.abs(bottom-c.y)<.00001,'book hover envelope snaps to frame/screen floor')
+        return
+    end
     assert(math.abs(entry.frame:GetBottom()+(fh-h)/2)<0.00001,'drag box bottom at screen floor')
     local baseline=E.EffectBaselines[c.art] or 1
     local crop=entry.frame:GetBottom()+fh/2+entry.art.point[5]+h*(0.5-baseline)
@@ -437,6 +445,7 @@ for _,art in ipairs(E.artworks) do
     if art.path then
         for _,size in ipairs({50,100,200}) do
             E.draft.left.art=art.id;E.draft.left.size=size;E.SnapToBottom(E.draft,'left');E.Apply('left');floorCheck(left,E.draft.left)
+            if not art.floatingOnly then assert(left.art.path==art.path,'static baseline must load original texture') end
             assert(left.frame.cx==620);assertDragFrame(left)
         end
     end
@@ -512,9 +521,8 @@ for _,row in ipairs(E.ArtworkPairs) do
  for _,size in ipairs({50,100,200}) do
   E.SelectPair(E.draft,row[1]);E.draft.pair.size=size;E.draft.pair.separation=0;E.SyncPair(E.draft);E.Apply()
   local function half(entry,c)
-   local art=E.artworkByID[c.art]
-   local width=art and art.width or 154
-   if c.art~='hidden' then width=width*c.size/100 end
+   local width=E.GetCapGeometry(c)
+   if c.art=='hidden' then width=154 end
    return width/2*entry.frame:GetEffectiveScale()/UIParent:GetEffectiveScale()
   end
   local gap=right.frame.cx*2-half(right,E.draft.right)-left.frame.cx-half(left,E.draft.left)
@@ -584,19 +592,19 @@ combat=true;E.Apply();assert(E.activePositionLayout==narrow and E.pending)
 combat=false;E.Apply();assert(E.activePositionLayout==wide and EndCapperDB.pair.separation==900)
 assert(EndCapperDB.positionProfiles[wide].pair.separation==900 and not EndCapperDB.positionProfiles[wide].left.frameY,
     'a profile switch must not commit the drag or gap preview')
-assert(left.art.path==E.ArtworkTexture(E.artworkByID.seraph.path) and right.art.path==E.ArtworkTexture(E.artworkByID.sanctum.path),
+assert(left.art.path==E.artworkByID.seraph.path and right.art.path==E.artworkByID.sanctum.path,
     'a profile switch restores the saved linked artwork instead of the draft or outgoing selections')
 assert(left.frame.cx~=200 and EndCapperDB.left.frameBottom)
 layouts.activeLayout=5
 left.nativeFrame:SetPoint('BOTTOM',UIParent,'BOTTOMLEFT',200,130);right.nativeFrame:SetPoint('BOTTOM',UIParent,'BOTTOMLEFT',800,160)
 E.Apply();assert(EndCapperDB.left.x==33 and EndCapperDB.left.y==27 and EndCapperDB.left.size==125)
 assert(left.frame.cx==675 and left.frame.cy==92.5,'saved drag survives profile switch')
-assert(left.art.path==E.ArtworkTexture(E.artworkByID.wolf.path) and right.art.path==E.ArtworkTexture(E.artworkByID.whiteWorgen.path))
+assert(left.art.path==E.artworkByID.wolf.path and right.art.path==E.artworkByID.whiteWorgen.path)
 eventFrame:event('PLAYER_LOGOUT');assert(EndCapperDB.positionProfiles[narrow].left.x==33)
 -- Failed metadata must not block real rendering, even with existing profiles.
 E.Begin();C_EditMode.GetLayouts=function() error('temporarily unavailable') end
 E.SelectArtwork(E.draft.left,'whiteWorgen','left');E.draft.left.size=140;E.Apply('left')
-assert(left.art.path==E.ArtworkTexture(E.artworkByID.whiteWorgen.path) and left.art.width==280,'art/size preview survives profile lookup failure')
+assert(left.art.path==E.artworkByID.whiteWorgen.path and left.art.width==280,'art/size preview survives profile lookup failure')
 E.Commit();E.Apply()
 assert(EndCapperDB.left.art=='whiteWorgen' and EndCapperDB.left.size==140)
 assert(EndCapperDB.positionProfiles[narrow].left.size==125,'unknown layout must not overwrite the last known placement record')
@@ -643,6 +651,41 @@ E.Begin();E.draft.hideBartenderArt=false;E.Commit();E.Apply()
 assert(artBar:GetAlpha()==0.8 and artModule.db.profile.enabled)
 Bartender4=previousBartender
 print('PASS: late Bartender art creation, suppression, unlock, combat deferral, saved preference and reversible alpha')
+E.Cancel()
+EndCapperDB=E.Normalize({left={art='frostbound'},right={art='emberbound'},
+    otherMode={mode='corner',enabled=true,left={art='frostbound'},right={art='emberbound'}}})
+E.Apply()
+assert(left.owned and right.owned and left.art.path==nil and right.art.path==nil,'book-only caps keep own placement without static foundations')
+assert(E.cornerCaps.left.owned and E.cornerCaps.right.owned and E.cornerCaps.left.art.path==nil and E.cornerCaps.right.art.path==nil,'corner books have no static duplicate or scroll')
+assert(math.abs(left.frame.width-162*(871/887+.024))<.00001)
+assert(math.abs(left.frame.height-(162*(705/887+.024)+4))<.00001,'frame removes the old scroll canvas padding')
+E.Begin()
+for _,mode in ipairs({'end','corner'}) do
+    local db=mode=='end' and E.draft or E.draft.otherMode
+    local cap=mode=='end' and left or E.cornerCaps.left
+    for _,art in ipairs({'frostbound','emberbound'}) do
+        for _,size in ipairs({50,100,200}) do
+            for _,flip in ipairs({false,true}) do
+                local c=db.left;c.art=art;c.size=size;c.flip=flip;c.x=0;c.y=0
+                c.books={[art]={size=125,x=14,y=42,flip=true}}
+                E.Apply()
+                local b=E.MageBookBounds[art];local bw=225*size/100*.72*1.25
+                local rendered=E.RenderFlip(c,mode);local bookFlip=rendered~=true
+                local cx=cap.art.point[4]+14*size/100*(rendered and -1 or 1)+((b[1]+b[3])/1774-.5)*bw*(bookFlip and -1 or 1)
+                local cy=cap.art.point[5]+42*size/100+(.5-(b[2]+b[4])/1774)*bw
+                assert(math.abs(cx)<.00001 and math.abs(cy)<.00001,'visible book is centred in its frame in both modes/facings')
+                floorCheck(cap,c)
+                local fx,fy=cap.frame.cx,cap.frame.cy
+                c.x=12;c.y=9;E.Apply()
+                assert(cap.frame.cx==fx and cap.frame.cy==fy,'art offsets never move the drag frame')
+            end
+        end
+    end
+end
+E.Cancel();E.Apply()
+E.Begin();E.draft.left.books={frostbound={flip=true}};E.Apply()
+assert(left.art.path==nil and E.draft.left.flip==false,'book flip leaves the foundation absent and whole-cap flip unchanged')
+E.Cancel()
 local future = {version=99, custom="preserve"}
 EndCapperDB = future
 local newer = {}

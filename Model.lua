@@ -5,6 +5,7 @@ E.UndeadArtworks={skull=true,lordaeron=true}
 E.WorgenArtworks={wolf=true,whiteWorgen=true}
 E.FrostmourneArtworks={frostmourneHilt=true,frostmourneBlade=true}
 E.WarlockArtworks={hexbound="Hexbound",soulbound="Soulbound"}
+E.MageNativeEffects={frostbound={"frostParticles","blueGlow","frostboltPrecast"},emberbound={"fireFlame","fireEmbers","amberGlow","fireballPrecast"}}
 E.ZephrasEffects={zephyr={"rangerWind","eerieGroundFog","skyWind"},skycutter={"rangerWind","eerieGroundFog","skyWind"}}
 E.UndercityEffects={
     cryptgate={"greenGroundFog","eerieGroundFog","candleFlame","amberEyeLeft","amberEyeRight"},
@@ -16,6 +17,7 @@ E.SylvanasEffects={
 }
 -- Explicit per-art lists share the established independently pooled scene lifecycle.
 E.MultiEffects={}
+for art,ids in pairs(E.MageNativeEffects) do E.MultiEffects[art]=ids end
 for art,ids in pairs(E.UndercityEffects) do E.MultiEffects[art]=ids end
 for art,ids in pairs(E.SylvanasEffects) do E.MultiEffects[art]=ids end
 for art,ids in pairs(E.ZephrasEffects) do E.MultiEffects[art]=ids end
@@ -48,6 +50,23 @@ E.devArtworks.moonwell=true
 E.devArtworks.skull=true
 E.devArtworks.lordaeron=true
 E.devArtworks.whiteWorgen=true
+-- Approved End Cap bake: left Coldsnap / right Combustion, 2026-11-14.
+local mageDefaults={
+    frostbound={
+        frostParticles={nativeEffect="frostParticles",trailSize=70,trailAngle=83,trailX=-1,trailY=45,trailOpacity=40,effectLayer="front"},
+        blueGlow={nativeEffect="blueGlow",trailSize=200,trailAngle=90,trailX=-6,trailY=67,trailOpacity=100,effectLayer="front"},
+        frostboltPrecast={nativeEffect="frostboltPrecast",trailSize=100,trailAngle=90,trailX=-5,trailY=72,trailOpacity=10,effectLayer="front"},
+    },
+    emberbound={
+        fireFlame={nativeEffect="fireFlame",trailSize=200,trailAngle=180,trailX=5,trailY=27,trailOpacity=45,effectLayer="front"},
+        fireEmbers={nativeEffect="fireEmbers",trailSize=191,trailAngle=99,trailX=-4,trailY=12,trailOpacity=2,effectLayer="front"},
+        amberGlow={nativeEffect="amberGlow",trailSize=200,trailAngle=90,trailX=4,trailY=65,trailOpacity=12,effectLayer="front"},
+        fireballPrecast={nativeEffect="fireballPrecast",trailSize=100,trailAngle=90,trailX=6,trailY=64,trailOpacity=1,effectLayer="front"},
+    },
+}
+for art,ids in pairs(E.MageNativeEffects) do
+    E.devArtworks[art]=true;E.EffectProfiles[art]=mageDefaults[art][ids[1]]
+end
 -- Approved Corner Cap bake, 2026-11-12 15:42:40: Zephyr left, Skycutter right.
 local zephrasDefaults={
     zephyr={
@@ -163,6 +182,9 @@ E.effectChoices[#E.effectChoices+1]={id="amberEyeLeft",name="Left Eye Trail"}
 E.effectChoices[#E.effectChoices+1]={id="amberEyeRight",name="Right Eye Trail"}
 E.effectChoices[#E.effectChoices+1]={id="lampGlow",name="Amber Lamp Glow"}
 E.effectChoices[#E.effectChoices+1]={id="skyWind",name="Skywall Swirl"}
+for _,choice in ipairs({{id="frostParticles",name="Frost Particles"},{id="amberGlow",name="Amber Glow"},
+    {id="fireEmbers",name="Fire Motes"},
+    {id="fireballPrecast",name="Fireball Precast"},{id="frostboltPrecast",name="Frostbolt Precast"}}) do E.effectChoices[#E.effectChoices+1]=choice end
 for _,choice in ipairs({
     {id="rangerBloom",name="Luminance Bloom"},{id="bansheeCloud",name="Black Dungeon Fog"},
     {id="blueEyeLeft",name="Left Blue Eye Trail"},{id="blueEyeRight",name="Right Blue Eye Trail"},
@@ -171,6 +193,7 @@ for _,choice in ipairs({
 }) do E.effectChoices[#E.effectChoices+1]=choice end
 local thirdEffect = {frostmourneHilt = "coldFlame",hexbound="shadowGlow",soulbound="shadowGlow"}
 local function alternateEffect(art)
+    if E.MageNativeEffects[art] then return E.MageNativeEffects[art][2] end
     if E.ZephrasEffects[art] then return E.ZephrasEffects[art][2] end
     if E.SylvanasEffects[art] then return E.SylvanasEffects[art][2] end
     if E.UndercityEffects[art] then return "eerieGroundFog" end
@@ -202,6 +225,7 @@ function E.CanSelectEffect(art, id)
 end
 function E.GetEffectDefaults(art, id)
     local profile=E.EffectProfiles[art] or E.SkullEffect
+    if E.MageNativeEffects[art] then return mageDefaults[art][id] or profile end
     if E.ZephrasEffects[art] then return zephrasDefaults[art][id] or profile end
     if E.SylvanasEffects[art] then
         return sylvanasDefaults[art][id] or profile
@@ -304,7 +328,10 @@ function E.SelectedEffect(config)
     if config.art=="felwing" and (not tuning or tuning.selectedEffect~="felGlow") then return "felDrip" end
     return (E.EffectProfiles[config.art] or E.SkullEffect).nativeEffect
 end
+E.MageArtworks={frostbound="Frostbound",emberbound="Emberbound"}
 E.artworks = {
+    { id = "frostbound", name = "Coldsnap", path = "Interface\\AddOns\\EndCapper\\Media\\FrostboundBookCASSize887.tga", floatingOnly=true, width=225, height=225 },
+    { id = "emberbound", name = "Combustion", path = "Interface\\AddOns\\EndCapper\\Media\\EmberboundBookCASSize887.tga", floatingOnly=true, width=225, height=225 },
     { id = "zephyr", name = "Zephyr", path = "Interface\\AddOns\\EndCapper\\Media\\Zephyr.tga", width=225, height=150 },
     { id = "skycutter", name = "Skycutter", path = "Interface\\AddOns\\EndCapper\\Media\\Skycutter.tga", width=225, height=150 },
     { id = "banshee", name = "Banshee", path = "Interface\\AddOns\\EndCapper\\Media\\Banshee.tga", width=150, height=150 },
@@ -342,6 +369,7 @@ E.artworkByID = {}
 for _, artwork in ipairs(E.artworks) do E.artworkByID[artwork.id] = artwork end
 -- Chooser rows are also the authoritative sister relationships.
 E.ArtworkPairs={{"skull","lordaeron"},{"wolf","whiteWorgen"},{"moonbough","lunarRelic"},
+    {"frostbound","emberbound"},
     {"zephyr","skycutter"},
     {"banshee","highGeneral"},
     {"cryptgate","plaguewell"},
@@ -356,6 +384,7 @@ end
 -- Saved flip remains the actual texture/effect mirror state for compatibility.
 -- The UI checkbox reverses this artwork's default facing on the selected side.
 function E.DefaultMirror(art, side)
+    if E.MageArtworks[art] then return side==(art=="frostbound" and "right" or "left") end
     if E.ZephrasEffects[art] then return side==(art=="zephyr" and "left" or "right") end
     if E.SylvanasEffects[art] then return side==(art=="banshee" and "right" or "left") end
     if E.UndercityEffects[art] then return side==(art=="cryptgate" and "left" or "right") end
@@ -381,6 +410,72 @@ end
 local function number(value, fallback, low, high)
     if type(value) ~= "number" or value ~= value then return fallback end
     return math.max(low, math.min(high, value))
+end
+-- Read-only legacy calibration keeps pre-foundation test saves visually stable.
+local bookFields={{"size","Book size (%)",25,200},{"x","Book X from artwork centre",-200,200},
+    {"y","Book Y from artwork centre",-200,200}}
+local bookDefaults={size=100,x=0,y=30,flip=false}
+local function normalizeBook(value)
+    value=type(value)=="table" and value or {}
+    local result={flip=value.flip==true}
+    for _,spec in ipairs(bookFields) do result[spec[1]]=number(value[spec[1]],bookDefaults[spec[1]],spec[3],spec[4]) end
+    return result
+end
+function E.GetBookConfig(config)
+    if not E.MageArtworks[config.art] then return end
+    return normalizeBook(config.books and config.books[config.art])
+end
+E.MageSigils={frostbound="Coldsnap",emberbound="Combustion"}
+E.SigilFields={{"size","Sigil size (%)",25,250},{"x","Sigil X from book centre",-200,200},
+    {"y","Sigil Y above book centre",-250,250},{"opacity","Sigil opacity (%)",0,100},
+    {"cycle","Frame animation cycle (seconds)",2,20},{"period","Seal revolution (seconds)",8,120}}
+local sigilDefaults={
+    frostbound={size=50,x=-8,y=68,opacity=42,cycle=8,period=40},
+    emberbound={size=52,x=8,y=69,opacity=42,cycle=4,period=40},
+}
+local function normalizeSigil(value,art)
+    value=type(value)=="table" and value or {}
+    local defaults=sigilDefaults[art]
+    local result={flip=value.flip==true}
+    for _,spec in ipairs(E.SigilFields) do result[spec[1]]=number(value[spec[1]],defaults[spec[1]],spec[3],spec[4]) end
+    return result
+end
+function E.GetSigilConfig(config)
+    if not E.MageSigils[config.art] then return end
+    return normalizeSigil(config.sigils and config.sigils[config.art],config.art)
+end
+function E.SetSigil(config,key,value)
+    if not E.devMode or not E.MageSigils[config.art] then return end
+    local known=key=="flip"
+    for _,spec in ipairs(E.SigilFields) do if key==spec[1] then known=true end end
+    if not known then return end
+    local tuning=E.GetSigilConfig(config);tuning[key]=value
+    config.sigils=config.sigils or {};config.sigils[config.art]=normalizeSigil(tuning,config.art)
+end
+function E.ResetSigil(config)
+    if not E.devMode or not E.MageSigils[config.art] then return end
+    config.sigils=config.sigils or {};config.sigils[config.art]=normalizeSigil(nil,config.art)
+end
+-- Alpha >=16 bounds in the original 887px book sheets (right/bottom exclusive).
+E.MageBookBounds={frostbound={1,114,872,819},emberbound={16,119,887,822}}
+-- Four extra UI pixels of total book travel, independent of sigil motion.
+function E.MageBookHoverAmplitude(bookWidth) return bookWidth*.012+2 end
+function E.GetCapGeometry(config,renderFlip)
+    local art=E.artworkByID[config.art]
+    local width,height=(art.width or 154)*config.size/100,(art.height or 150)*config.size/100
+    local bounds=E.MageBookBounds[config.art]
+    if not bounds then return width,height,0,0 end
+    local tuning=E.GetBookConfig(config)
+    local bookWidth=width*.72*tuning.size/100
+    local bookFlip=(renderFlip==true)~=tuning.flip
+    local centerX=((bounds[1]+bounds[3])/1774-.5)*bookWidth*(bookFlip and -1 or 1)
+    local centerY=(.5-(bounds[2]+bounds[4])/1774)*bookWidth
+    -- A small horizontal breathing margin; vertical bounds include the complete
+    -- native hover excursion so the drag box remains stationary during motion.
+    return bookWidth*((bounds[3]-bounds[1])/887+.024),
+        bookWidth*(bounds[4]-bounds[2])/887+2*E.MageBookHoverAmplitude(bookWidth),
+        tuning.x*width/225*(renderFlip and -1 or 1)+centerX,
+        tuning.y*height/225+centerY
 end
 local function separationInitialized(pair)
     if pair.separationInitialized~=nil then return pair.separationInitialized==true end
@@ -573,12 +668,20 @@ function E.NormalizeSide(value, side)
     if type(value.halos)=="table" then
         for id in pairs(E.HaloArtworks) do if type(value.halos[id])=="table" then halos[id]=normalizeHalo(value.halos[id],id) end end
     end
+    local books={}
+    if type(value.books)=="table" then
+        for id in pairs(E.MageArtworks) do if type(value.books[id])=="table" then books[id]=normalizeBook(value.books[id]) end end
+    end
+    local sigils={}
+    if type(value.sigils)=="table" then
+        for id in pairs(E.MageSigils) do if type(value.sigils[id])=="table" then sigils[id]=normalizeSigil(value.sigils[id],id) end end
+    end
     return E.GetEffectConfig({ art = art, flip = flip, size = number(value.size, 100, 50, 200),
         x = number(value.x, 0, -200, 200), y = number(value.y, 0, -200, 200),
         frameBottom=value.frameBottom~=false,artBottom=value.artBottom~=false,
         frameX=type(value.frameX)=="number" and number(value.frameX,0,-10000,10000) or nil,
         frameY=type(value.frameY)=="number" and number(value.frameY,0,-10000,10000) or nil,
-        effects = true, nativeSmoke = true, devEffects=devEffects, effectLayers=effectLayers,halos=halos })
+        effects = true, nativeSmoke = true, devEffects=devEffects, effectLayers=effectLayers,halos=halos,books=books,sigils=sigils })
 end
 local function normalizeMode(value,mode,version,skipProfiles)
     local enabled=value.enabled
@@ -759,8 +862,7 @@ function E.PairFrameOffset(config,side,gap,halfWidth)
     -- Default width follows the art-sized drag box. The renderer supplies
     -- actual native widths/effective scales once those frames are available.
     if not halfWidth then
-        local art=E.artworkByID[config.art]
-        halfWidth=(art and art.width or 154)*config.size/200
+        halfWidth=E.GetCapGeometry(config)/2
     end
     return (side=="left" and -1 or 1)*(halfWidth+gap/2)
 end
@@ -822,7 +924,7 @@ end
 function E.Config()
     return E.draft or EndCapperDB
 end
--- All custom artwork uses the accepted maximum-CAS bake.
+-- Animated layers use the accepted maximum-CAS bake; static bases use their original paths.
 function E.ArtworkTexture(path)
     if not path then return path end
     return (path:gsub("(%.[^%.]+)$", "CAS%1"))
@@ -860,6 +962,12 @@ local function editableSettings(db,includeEffects)
             end
             settings.effects[art]=tuning
         end end
+        if includeEffects then
+            settings.books={}
+            for art in pairs(E.MageArtworks) do settings.books[art]=E.GetBookConfig({art=art,books=c.books}) end
+            settings.sigils={}
+            for art in pairs(E.MageSigils) do settings.sigils[art]=E.GetSigilConfig({art=art,sigils=c.sigils}) end
+        end
         result[side]=settings
     end
     return result

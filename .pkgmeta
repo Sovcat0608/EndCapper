@@ -4,6 +4,8 @@ manual-changelog:
   filename: CHANGELOG.md
   markup-type: markdown
 ignore:
+  - Media/Frostbound.tga
+  - Media/Emberbound.tga
   - tests
   - tools
   - webhook.md
@@ -23,53 +25,53 @@ ignore:
   - Media/ArcaneSigilSize256.tga
   - Media/ArcaneSigilSize64.tga
   - Media/ArcaneSigilSize96.tga
-  - Media/Banshee.tga
-  - Media/Cinderforged.tga
+  - Media/BansheeCAS.tga
+  - Media/CinderforgedCAS.tga
   - Media/CinderforgedBloom.tga
   - Media/CinderforgedEmission.tga
-  - Media/Cindermaw.tga
+  - Media/CindermawCAS.tga
   - Media/CindermawBloom.tga
   - Media/CindermawEmission.tga
-  - Media/Cryptgate.tga
+  - Media/CryptgateCAS.tga
   - Media/CryptgateLiquidAtlas.tga
-  - Media/Eclipse.tga
-  - Media/Felwing.tga
+  - Media/EclipseCAS.tga
+  - Media/FelwingCAS.tga
   - Media/FelwingGlyphAtlas.tga
-  - Media/FrostmourneBlade.tga
-  - Media/FrostmourneBladeIce.tga
-  - Media/FrostmourneHilt.tga
-  - Media/FrostmourneHiltIce.tga
-  - Media/Hexbound.tga
+  - Media/FrostmourneBladeCAS.tga
+  - Media/FrostmourneBladeIceCAS.tga
+  - Media/FrostmourneHiltCAS.tga
+  - Media/FrostmourneHiltIceCAS.tga
+  - Media/HexboundCAS.tga
   - Media/HexboundBloom.tga
   - Media/HexboundEmission.tga
-  - Media/HighGeneral.tga
-  - Media/KirinTor.tga
-  - Media/Lordaeron.tga
-  - Media/LunarRelic.tga
-  - Media/Moonbough.tga
-  - Media/Moonwell.tga
+  - Media/HighGeneralCAS.tga
+  - Media/KirinTorCAS.tga
+  - Media/LordaeronCAS.tga
+  - Media/LunarRelicCAS.tga
+  - Media/MoonboughCAS.tga
+  - Media/MoonwellCAS.tga
   - Media/MoonwellBounce.tga
   - Media/MoonwellGlyphs.tga
   - Media/MoonwellMoon.tga
   - Media/MoonwellWater.tga
-  - Media/Plaguewell.tga
+  - Media/PlaguewellCAS.tga
   - Media/PlaguewellLiquidAtlas.tga
-  - Media/Rimeforged.tga
+  - Media/RimeforgedCAS.tga
   - Media/RimeforgedIce.tga
   - Media/RimeforgedIceBloom.tga
   - Media/RimeforgedRunes.tga
   - Media/RimeforgedRunesBloom.tga
-  - Media/Rimeguard.tga
+  - Media/RimeguardCAS.tga
   - Media/RimeguardEyes.tga
   - Media/RimeguardEyesBloom.tga
   - Media/RimeguardIce.tga
   - Media/RimeguardIceBloom.tga
   - Media/RimeguardRunes.tga
   - Media/RimeguardRunesBloom.tga
-  - Media/Sanctum.tga
-  - Media/Seraph.tga
+  - Media/SanctumCAS.tga
+  - Media/SeraphCAS.tga
   - Media/SeraphHalo.blp
-  - Media/Skycutter.tga
+  - Media/SkycutterCAS.tga
   - Media/SkycutterBoat.blp
   - Media/SkycutterBoat.tga
   - Media/SkycutterBoatEdgeAA.tga
@@ -82,7 +84,7 @@ ignore:
   - Media/SkycutterBoatSize768.tga
   - Media/SkycutterBoatSize960.tga
   - Media/SkycutterBoatStaticProbe.tga
-  - Media/Soulbound.tga
+  - Media/SoulboundCAS.tga
   - Media/SoulboundBloom.tga
   - Media/SoulboundCrystal.blp
   - Media/SoulboundCrystal.tga
@@ -98,13 +100,13 @@ ignore:
   - Media/SoulboundCrystalSize64.tga
   - Media/SoulboundCrystalSize96.tga
   - Media/SoulboundEmission.tga
-  - Media/StormhornTotem.tga
-  - Media/Umbra.tga
+  - Media/StormhornTotemCAS.tga
+  - Media/UmbraCAS.tga
   - Media/UmbraHalo.blp
-  - Media/Undead.tga
-  - Media/VerdantRoot.tga
-  - Media/VioletSpire.tga
-  - Media/WorgenBlack.tga
-  - Media/WorgenWhite.tga
+  - Media/UndeadCAS.tga
+  - Media/VerdantRootCAS.tga
+  - Media/VioletSpireCAS.tga
+  - Media/WorgenBlackCAS.tga
+  - Media/WorgenWhiteCAS.tga
   - Media/WorgenWolf.tga
-  - Media/Zephyr.tga
+  - Media/ZephyrCAS.tga

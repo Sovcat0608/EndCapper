@@ -2,10 +2,17 @@ const assert=require('node:assert/strict'),fs=require('node:fs');
 const {files,read,outputName,convert}=require('./Build-ArtworkCAS.cjs');
 assert.equal(new Set(files).size,files.length);
 // Every base and separate ice overlay in the artwork registry has a CAS pair.
-const registry=fs.readFileSync('Model.lua','utf8');
+const registry=fs.readFileSync('Model.lua','utf8').split('\n').filter(line=>!line.includes('floatingOnly=true')).join('\n');
 const paths=[...registry.matchAll(/(?:path|overlay)\s*=\s*"Interface\\\\AddOns\\\\EndCapper\\\\Media\\\\([^"\r\n]+)"/g)].map(m=>'Media/'+m[1]);
-assert.equal(paths.length,32,'30 custom bases plus two ice overlays');
-for(const file of paths)assert(files.includes(file),'Missing artwork CAS pair: '+file);
+assert.equal(paths.length,32,'30 static bases plus two ice overlays; two floating-only books checked separately');
+const baselines=require('./baseline-artwork.json');
+assert.deepEqual([...baselines].sort(),[...paths].sort(),'Package baseline manifest matches static registry');
+const pkgmeta=fs.readFileSync('.pkgmeta','utf8').split(/\r?\n/);
+for(const file of paths) {
+  assert(files.includes(file),'Missing archived artwork CAS pair: '+file);
+  assert(!pkgmeta.includes('  - '+file),'Original baseline must ship: '+file);
+  assert(pkgmeta.includes('  - '+file.replace(/\.(tga|blp)$/,'CAS.$1')),'Static CAS must stay build-only: '+file);
+}
 for(const file of files) {
   const original=read(file),result=fs.readFileSync(outputName(file));
   assert.deepEqual(result,convert(original,file),'Reproducible CAS: '+file);

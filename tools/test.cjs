@@ -3,7 +3,7 @@ const path = require('node:path');
 const parser = require('luaparse');
 const {lua,lauxlib,lualib,to_luastring} = require('fengari');
 process.chdir(path.resolve(__dirname, '..'));
-for (const file of ['Model.lua','Layouts.lua','Clipping.lua','NativeSmoke.lua','Glyphs.lua','Liquid.lua','Arcane.lua','Skycutter.lua','Molten.lua','Frost.lua','Moonwell.lua','Halos.lua','Effects.lua','Core.lua','Options.lua']) {
+for (const file of ['Model.lua','Layouts.lua','Clipping.lua','NativeSmoke.lua','Glyphs.lua','Liquid.lua','Arcane.lua','Skycutter.lua','MageBooks.lua','MageSigils.lua','Molten.lua','Frost.lua','Moonwell.lua','Halos.lua','Effects.lua','Core.lua','Options.lua']) {
   parser.parse(fs.readFileSync(file,'utf8'),{luaVersion:'5.1'});
   console.log('Lua 5.1 syntax PASS:',file);
 }
@@ -15,7 +15,7 @@ lua.lua_pushcfunction(L, function(L) {
   if (lauxlib.luaL_loadstring(L,to_luastring(code)) !== lua.LUA_OK) return lua.lua_error(L);
   return 1;
 }); lua.lua_setglobal(L,to_luastring('loadfile'));
-const test = 'unpack = table.unpack\n' + ['tests/model.lua','tests/sylvanas.lua','tests/zephras.lua','tests/worgen.lua','tests/frostmourne.lua','tests/dirty.lua','tests/pairs.lua','tests/layouts.lua','tests/core.lua','tests/native.lua','tests/refresh.lua','tests/options.lua','tests/glyphs.lua','tests/liquid.lua','tests/arcane.lua','tests/molten.lua','tests/frost.lua','tests/halos.lua','tests/clipping.lua'].map(f => 'do\n'+fs.readFileSync(f,'utf8')+'\nend').join('\n');
+const test = 'unpack = table.unpack\n' + ['tests/model.lua','tests/sylvanas.lua','tests/zephras.lua','tests/worgen.lua','tests/frostmourne.lua','tests/dirty.lua','tests/pairs.lua','tests/layouts.lua','tests/core.lua','tests/native.lua','tests/refresh.lua','tests/options.lua','tests/glyphs.lua','tests/liquid.lua','tests/arcane.lua','tests/molten.lua','tests/frost.lua','tests/halos.lua','tests/mage-sigils.lua','tests/clipping.lua'].map(f => 'do\n'+fs.readFileSync(f,'utf8')+'\nend').join('\n');
 if (lauxlib.luaL_dostring(L,to_luastring(test)) !== lua.LUA_OK) {
   throw Error(require('fengari').to_jsstring(lua.lua_tostring(L,-1)));
 }
@@ -139,3 +139,6 @@ for(const name of ['Cinderforged','Cindermaw']) {
   }
   console.log('Emission PASS:',name,'exact hot-pixel registration, separate bloom, eyes/mouth coverage where applicable');
 }
+require('./test-mage-books.cjs');
+
+require('./test-mage-sigils.cjs');

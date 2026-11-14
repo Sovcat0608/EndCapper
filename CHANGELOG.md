@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.4.6 — 2026-11-14
+
+- Added **Coldsnap / Combustion**, a matching frost and fire mage sister pair, bringing the collection to **32 custom designs**. Each features a floating spellbook with detailed elemental glyphs and animated frost or ember edges.
+- Added pulsing book emissions and bloom, with smooth six-second hover motion and size-specific sharpened textures. The books lead their hovering sigils by one second.
+- Coldsnap's luminous eye sigil looks around, with flowing curls and gently flickering markings.
+- Combustion's golden glyph seal rotates around a subtly animated flame, with transparent spaces between the linework and through the flame's centre.
+- Added calibrated **Frost Particles, Blue Glow and Frostbolt Precast** effects to Coldsnap, and **Fire, Fire Motes, Amber Glow and Fireball Precast** to Combustion. Their effects run together with approved default positioning in both cap modes.
+- Fitted the new books' draggable frames to their visible artwork and full hover range. Linked spacing, bottom snapping and corner placement use those fitted bounds; the standard cap controls adjust the books directly.
+- Added red boxed previous/next buttons beside the artwork dropdowns, including the linked-pair menu, with wraparound cycling.
+- Added the EndCapper logo to the game's AddOns menu.
+- Restored original, unsharpened textures for all static baseline artwork and static ice overlays. Animated elements retain CAS sharpening and their existing motion.
+
 ## 1.4.5 — 2026-11-12
 
 - Added **Zephyr / Skycutter**, a matching Zephras Isle sister pair, bringing the collection to **30 custom designs**. Zephyr features floating-island architecture and landscape; Skycutter features its own island and a separate airship.

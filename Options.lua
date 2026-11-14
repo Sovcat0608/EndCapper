@@ -3,6 +3,7 @@ local side = "left"
 local refreshing = false
 local nativeDialogTarget
 local priestEdit = "effects" -- Session-only choice; never part of saved calibration.
+local mageEdit = "sigil"
 local function label(parent, text, x, y, font)
     local l = parent:CreateFontString(nil, "OVERLAY", font or "GameFontNormal")
     l:SetPoint("TOPLEFT", x, y); l:SetText(text)
@@ -55,6 +56,52 @@ local function preview(targetSide,bothModes)
     local mode=not bothModes and E.draft and E.draft.mode or nil
     E.Apply(targetSide,mode);E.UpdateSaveButton()
 end
+-- Dropdowns and side chevrons share the same order and selection transaction.
+local function artworkChoices(column)
+    local choices={}
+    local function add(id)
+        if id and (id~="default" or E.draft.mode=="end") then choices[#choices+1]=id end
+    end
+    for _,row in ipairs(E.ArtworkPairs) do
+        if not column then
+            add(row[1]);if row[1]=="default" then add("hidden") end
+        else
+            local first=column=="right" and row[2] or row[1];first=first or row[1]
+            add(first)
+            if row[2] then add(first==row[1] and row[2] or row[1]) end
+        end
+    end
+    return choices
+end
+local function selectArtworkChoice(column,id)
+    if not E.draft or InCombatLockdown() then return end
+    if column then
+        if E.draft.pair.linked then return end
+        side=column;E.SelectArtwork(E.draft[column],id,column);preview(column)
+    else
+        if not E.draft.pair.linked then return end
+        E.SelectPair(E.draft,id);preview()
+    end
+    E.RefreshOptions()
+end
+local function artworkChevrons(dropdown,column)
+    for _,direction in ipairs({-1,1}) do
+        local b=CreateFrame("Button",nil,dropdown,"UIPanelButtonTemplate")
+        b:SetSize(20,24)
+        b:SetPoint(direction==-1 and "RIGHT" or "LEFT",dropdown,direction==-1 and "LEFT" or "RIGHT",direction,0)
+        b:SetText(direction==-1 and "<" or ">")
+        b:SetScript("OnClick",function()
+            if not E.draft or InCombatLockdown() then return end
+            local choices=artworkChoices(column)
+            local selected=column and E.draft[column].art or E.draft.pair.art
+            local index=1
+            for i,id in ipairs(choices) do if id==selected then index=i;break end end
+            dropdown:CloseMenu()
+            selectArtworkChoice(column,choices[(index-1+direction)%#choices+1])
+        end)
+        dropdown[direction==-1 and "previous" or "next"]=b
+    end
+end
 function E.RefreshOptions()
     if not E.panel or not E.draft then return end
     refreshing = true
@@ -98,7 +145,8 @@ function E.RefreshOptions()
     local priestEffects=E.PriestEffectPairs[c.art]~=nil
     local halo=E.GetHaloConfig(c)
     local haloTabs=priestEffects and halo~=nil
-    local nativeVisible=not haloTabs or priestEdit=="effects"
+    local mageTabs=E.MageNativeEffects[c.art]~=nil
+    local nativeVisible=mageTabs and mageEdit=="effects" or (not mageTabs and (not haloTabs or priestEdit=="effects"))
     local capName=corner and "corner cap" or "end cap"
     local sideName=side=="left" and "Left " or "Right "
     p.heading:SetText(linked and ("Linked "..capName.."s") or sideName..capName)
@@ -192,6 +240,23 @@ function E.RefreshOptions()
         slider:SetValue(effect[key]);enableSlider(slider,editable)
     end
     p.dev.reset:SetEnabled(editable); p.dev.report:SetEnabled(editable)
+    local sigil=E.GetSigilConfig(c)
+    p.dev.sigil:SetShown(sigil~=nil and mageEdit=="sigil" and E.devMode==true)
+    p.dev.native:SetShown(sigil==nil or nativeVisible)
+    if sigil then
+        p.dev.heading:SetText("Developer: "..side.." "..E.MageSigils[c.art])
+        p.dev.note:SetText(nativeVisible and "All effects run. Opacity 0 hides an effect." or "Book leads the sigil hover by one second.")
+        p.dev.halo:Hide();p.dev.seal:Hide()
+        p.dev.haloTab:SetText("Sigil");p.dev.effectsTab:SetShown(E.devMode==true);p.dev.haloTab:SetShown(E.devMode==true)
+        p.dev.haloTab:SetEnabled(mageEdit~="sigil");p.dev.effectsTab:SetEnabled(mageEdit~="effects")
+        p.dev.native:ClearAllPoints();p.dev.native:SetPoint("TOPLEFT",p.dev,"TOPLEFT",0,-34)
+        p.dev.sigil:ClearAllPoints();p.dev.sigil:SetPoint("TOPLEFT",p.dev,"TOPLEFT",18,-104)
+        for key,slider in pairs(p.dev.sigil.sliders) do
+            slider:SetValue(sigil[key]);enableSlider(slider,key~="period" or c.art=="emberbound")
+        end
+        p.dev.sigil.flip:SetChecked(sigil.flip)
+        p.dev:SetSize(330,487+(nativeVisible and extraRows or 0))
+    else p.dev.haloTab:SetText("Halo") end
     local x=linked and pairOffset(E.draft) or c.x
     local limit=linked and math.min(10000,math.ceil(math.max(UIParent:GetWidth()/2,math.abs(x)))) or 200
     p.sliders.x:SetMinMaxValues(-limit,limit)
@@ -287,36 +352,23 @@ local function makePanel()
     p.artDropdowns={}
     for index,column in ipairs({'left','right'}) do
         local dropdown=CreateFrame('DropdownButton',nil,p,'WowStyle1DropdownTemplate')
-        dropdown:SetPoint('TOPLEFT',20+(index-1)*156,-152);dropdown:SetSize(144,32)
+        dropdown:SetPoint('TOPLEFT',41+(index-1)*156,-152);dropdown:SetSize(102,32)
         dropdown:SetDefaultText('Select artwork')
         dropdown:SetupMenu(function(_,root)
             if not E.draft then return end
             root:SetScrollMode(280)
-            -- Put the customary sister for this column first, but allow any
-            -- artwork on either side in independent mode and for swapped pairs.
-            for _,row in ipairs(E.ArtworkPairs) do
-                local first=column=='right' and row[2] or row[1]
-                first=first or row[1]
-                local second
-                if row[2] then second=first==row[1] and row[2] or row[1] end
-                for _,id in ipairs(second and {first,second} or {first}) do
-                    if id~="default" or E.draft.mode=="end" then
-                        root:CreateRadio(E.artworkByID[id].name,function(value)
-                            return E.draft and E.draft[column].art==value
-                        end,function(value)
-                            if not E.draft or E.draft.pair.linked or InCombatLockdown() then return end
-                            side=column;E.SelectArtwork(E.draft[column],value,column);preview(column)
-                            E.RefreshOptions()
-                        end,id)
-                    end
-                end
+            for _,id in ipairs(artworkChoices(column)) do
+                root:CreateRadio(E.artworkByID[id].name,function(value)
+                    return E.draft and E.draft[column].art==value
+                end,function(value) selectArtworkChoice(column,value) end,id)
             end
         end)
+        artworkChevrons(dropdown,column)
         p.artDropdowns[column]=dropdown
     end
     p.pairDropdownLabel=label(p,"Linked artwork",20,-130)
     local pairDropdown=CreateFrame('DropdownButton',nil,p,'WowStyle1DropdownTemplate');p.pairDropdown=pairDropdown
-    pairDropdown:SetPoint('TOPLEFT',20,-152);pairDropdown:SetSize(300,32);pairDropdown:SetDefaultText('Select pair')
+    pairDropdown:SetPoint('TOPLEFT',41,-152);pairDropdown:SetSize(258,32);pairDropdown:SetDefaultText('Select pair')
     pairDropdown:SetupMenu(function(_,root)
         if not E.draft then return end
         root:SetScrollMode(280)
@@ -324,17 +376,12 @@ local function makePanel()
             root:CreateRadio(pairLabel(art,E.draft.pair.swapped),function(value)
                 return E.draft and E.draft.pair.art==value
             end,function(value)
-                if not E.draft or not E.draft.pair.linked or InCombatLockdown() then return end
-                E.SelectPair(E.draft,value);preview();E.RefreshOptions()
+                selectArtworkChoice(nil,value)
             end,art)
         end
-        for _,row in ipairs(E.ArtworkPairs) do
-            if row[1]=="default" then
-                if E.draft.mode=="end" then add("default") end
-                add("hidden")
-            else add(row[1]) end
-        end
+        for _,id in ipairs(artworkChoices(nil)) do add(id) end
     end)
+    artworkChevrons(pairDropdown,nil)
     p.flip = CreateFrame("CheckButton", nil, artPage, "UICheckButtonTemplate")
     p.flip:SetPoint("TOPLEFT",5,-64)
     label(artPage,"Flip horizontally",38,-73)
@@ -417,10 +464,10 @@ local function makePanel()
     dev.heading=label(dev,"",18,-18,"GameFontNormalLarge")
     dev.note=label(dev,"",18,-43,"GameFontHighlightSmall")
     dev.effectsTab=button(dev,"Effects",18,-64,140,function()
-        priestEdit="effects";E.RefreshOptions()
+        if E.draft and E.MageNativeEffects[E.draft[side].art] then mageEdit="effects" else priestEdit="effects" end;E.RefreshOptions()
     end)
     dev.haloTab=button(dev,"Halo",170,-64,140,function()
-        priestEdit="halo";E.RefreshOptions()
+        if E.draft and E.MageNativeEffects[E.draft[side].art] then mageEdit="sigil" else priestEdit="halo" end;E.RefreshOptions()
     end)
     local native=CreateFrame("Frame",nil,dev);dev.native=native
     native:SetSize(330,453);native:SetPoint("TOPLEFT",dev,"TOPLEFT",0,0)
@@ -509,6 +556,34 @@ local function makePanel()
             E.artworkByID[c.art].name,side,tostring(E.FlipChecked(c,side)),tostring(E.RenderFlip(c,E.draft.mode)),v.size,v.x,v.y,v.opacity,v.period,tostring(v.reverse)))
     end)
     label(halo,"Save keeps tuning; Cancel discards preview.",0,-325,"GameFontHighlightSmall")
+    local sigil=CreateFrame("Frame",nil,dev);dev.sigil=sigil;sigil:Hide()
+    sigil:SetPoint("TOPLEFT",dev,"TOPLEFT",18,-70);sigil:SetSize(295,360);sigil.sliders={}
+    for i,spec in ipairs(E.SigilFields) do
+        local key,title,low,high=unpack(spec)
+        label(sigil,title,2,-(i-1)*43)
+        local s=nativeSlider(sigil,4,-19-(i-1)*43,285,low,high,title)
+        s:HookScript("OnValueChanged",function(_,value)
+            if not refreshing and E.draft then E.SetSigil(E.draft[side],key,math.floor(value+0.5));preview(side) end
+        end)
+        sigil.sliders[key]=s
+    end
+    sigil.flip=CreateFrame("CheckButton",nil,sigil,"UICheckButtonTemplate")
+    sigil.flip:SetPoint("TOPLEFT",0,-261);label(sigil,"Flip sigil horizontally",32,-270)
+    sigil.flip:SetScript("OnClick",function(self)
+        if not E.draft then return end
+        E.SetSigil(E.draft[side],"flip",self:GetChecked() and true or false);preview(side)
+    end)
+    sigil.reset=button(sigil,"Reset sigil",0,-306,140,function()
+        if not E.draft then return end
+        E.ResetSigil(E.draft[side]);preview(side);E.RefreshOptions()
+    end)
+    sigil.report=button(sigil,"Print values",152,-306,140,function()
+        if not E.draft then return end
+        local c=E.draft[side];local v=E.GetSigilConfig(c);if not v then return end
+        E.Message(string.format("%s / %s (%s %s): size=%d%%, X=%d, Y=%d, opacity=%d%%, cycle=%ds, revolution=%ds, flip=%s. Click Save to keep changes.",
+            E.artworkByID[c.art].name,E.MageSigils[c.art],E.draft.mode,side,v.size,v.x,v.y,v.opacity,v.cycle,v.period,tostring(v.flip)))
+    end)
+    label(sigil,"Save keeps tuning; Cancel discards preview.",0,-347,"GameFontHighlightSmall")
     local seal=CreateFrame("Frame",nil,dev); dev.seal=seal
     seal:SetSize(300,46); seal:SetPoint("TOPLEFT",20,-448); seal:Hide()
     label(seal,"Seal size (%)",0,0)

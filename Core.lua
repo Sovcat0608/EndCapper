@@ -24,7 +24,7 @@ end
 local function halfWidth(side,config)
     local entry=E.caps[side]
     local scale=entry and entry.frame:GetEffectiveScale()/UIParent:GetEffectiveScale() or 1
-    return (E.artworkByID[config.art].width or 154)*config.size*scale/200
+    return E.GetCapGeometry(config)*scale/2
 end
 
 local function defaultPairSpan()
@@ -315,20 +315,21 @@ local function renderCap(entry,db)
     if entry.artOverlay then entry.artOverlay:Hide() end
     if entry.owned then
         local width,height=artwork.width,artwork.height
-        art:SetTexture(E.ArtworkTexture(artwork.path))
+        if artwork.floatingOnly then art:SetTexture(nil) else art:SetTexture(artwork.path) end
         art:SetTexCoord(E.UV({0,0,0,1,1,0,1,1},flip))
         art:SetSize(width*c.size/100,height*c.size/100)
-        entry.frame:SetSize(art:GetSize())
+        local frameWidth,frameHeight,centerX,centerY=E.GetCapGeometry(c,flip)
+        entry.frame:SetSize(frameWidth,frameHeight)
         art:SetAlpha(entry.alpha)
         art:ClearAllPoints()
         local offsetY=c.y
         -- The visible drag box is art-sized for custom artwork. Its
         -- lower edge is the zero reference, excluding transparent padding.
-        if c.artBottom then
+        if c.artBottom and not artwork.floatingOnly then
             local baseline=E.EffectBaselines[c.art] or 1
             offsetY=offsetY+height*c.size/100*(baseline-1)
         end
-        art:SetPoint("CENTER", entry.frame, "CENTER", c.x, offsetY)
+        art:SetPoint("CENTER", entry.frame, "CENTER", c.x-centerX, offsetY-centerY)
         art:Show()
         if artwork.overlay then
             -- Static foreground artwork shares the base plane, above its
@@ -339,7 +340,7 @@ local function renderCap(entry,db)
                 entry.artOverlay=overlay
                 overlay:SetBlendMode("BLEND")
             end
-            overlay:SetTexture(E.ArtworkTexture(artwork.overlay))
+            overlay:SetTexture(artwork.overlay)
             overlay:SetSize(width*c.size/100,height*c.size/100)
             overlay:SetTexCoord(E.UV({0,0,0,1,1,0,1,1},flip))
             overlay:SetAlpha(entry.alpha)

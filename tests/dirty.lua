@@ -1,5 +1,16 @@
 local E={}
 assert(loadfile('Model.lua'))('EndCapper',E)
+do
+    assert(E.SetBook==nil and E.ResetBook==nil and E.BookFields==nil,'retired developer book controls')
+    EndCapperDB=E.Normalize({left={art='frostbound',books={frostbound={size=125,x=15,y=42,flip=true}}},right={art='emberbound'}})
+    E.Begin();assert(not E.HasChanges())
+    E.draft.left.size=130;assert(E.HasChanges());E.Commit();E.Begin();assert(not E.HasChanges())
+    E.draft.left.y=90;E.Cancel()
+    local saved=E.Normalize(EndCapperDB);local legacy=E.GetBookConfig(saved.left)
+    assert(legacy.size==125 and legacy.x==15 and legacy.y==42 and legacy.flip,'normal cap changes preserve old registration')
+    local bad=E.NormalizeSide({art='frostbound',books={frostbound={size=999,x=-999,y=0/0},unknown={}}},'left')
+    assert(E.GetBookConfig(bad).size==200 and E.GetBookConfig(bad).x==-200 and E.GetBookConfig(bad).y==30 and not bad.books.unknown)
+end
 EndCapperDB=E.Normalize({left={art='wolf'},right={art='seraph'}})
 assert(not E.HasChanges());E.Begin();assert(not E.HasChanges())
 for _,key in ipairs({'size','x','y'}) do

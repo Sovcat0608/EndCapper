@@ -1,10 +1,10 @@
 # EndCapper
 
-**Version 1.4.5 for World of Warcraft: Forever.**
+**Version 1.4.6 for World of Warcraft: Forever.**
 
-Decorate your action bars and screen corners with 30 fantasy designs. Mix and match artwork or link matching pairs, then adjust placement, size and mirroring from EndCapper’s own panel.
+Decorate your action bars and screen corners with 32 fantasy designs. Mix and match artwork or link matching pairs, then adjust placement, size and mirroring from EndCapper’s own panel.
 
-Custom artwork includes maximum CAS sharpening as standard. Moving elements use size-specific textures to retain clarity while protecting transparent edges.
+Static artwork uses its original, unsharpened textures. Animated elements retain CAS sharpening, with size-specific textures for moving elements to protect clarity and transparent edges.
 
 ## Install or update
 
@@ -35,6 +35,8 @@ Animated effects stop at the artwork's bottom edge. This cutoff follows artwork 
 
 | Design | Effects |
 | --- | --- |
+| Coldsnap | Floating frost spellbook, animated eye sigil, Frost Particles, Blue Glow and Frostbolt Precast |
+| Combustion | Floating fire spellbook, rotating golden seal and animated flame, Fire, Fire Motes, Amber Glow and Fireball Precast |
 | Zephyr | Floating island shrine and windswept terraces, with Gentle Whirlwind, Skywall Swirl and Blue Mist |
 | Skycutter | Gently hovering skyship behind a stationary island dock, with Gentle Whirlwind, Skywall Swirl and Blue Mist |
 | Banshee | Undead Sylvanas, with black dungeon fog, two red flame eye trails and Void Glow |

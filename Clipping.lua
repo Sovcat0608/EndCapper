@@ -45,7 +45,8 @@ function E.ClipEffect(entry, config, frame, level)
 end
 
 function E.CropNativeEffect(entry, config, scene, viewport, centreX, centreY, profile)
-    local zephrasWind=config.nativeEffect=="rangerWind" and E.ZephrasEffects and E.ZephrasEffects[config.art]
+    local zephrasWind=config.nativeEffect=="rangerWind" and ((E.ZephrasEffects and E.ZephrasEffects[config.art])
+        or (E.MageNativeEffects and E.MageNativeEffects[config.art]))
     if profile and (profile.naturalEdges or zephrasWind) then
         -- Let this bounded swirl fade using its authored alpha. A bottom crop
         -- would reintroduce the straight edge. Double the render room without

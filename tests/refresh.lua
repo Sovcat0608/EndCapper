@@ -412,10 +412,10 @@ for _,enabled in ipairs({false,true}) do
     E.draft.casSharpening=enabled;E.Apply();advance(0)
     for _,cap in ipairs({E.caps.left,E.caps.right,E.cornerCaps.left,E.cornerCaps.right}) do
         local expected=(cap.mode=='corner' and E.draft.otherMode or E.draft)[cap.side].art
-        assert(cap.art.path==E.ArtworkTexture(E.artworkByID[expected].path),'both modes use standard CAS despite legacy flag')
+        assert(cap.art.path==E.artworkByID[expected].path,'both modes use original baseline despite legacy flag')
         assert(cap.nativeSmoke.slots[1].scene.shown,'native effect stays visible')
     end
 end
 E.draft.casSharpening=false;E.Apply();advance(0);E.Cancel();E.Apply();advance(0)
-assert(E.caps.left.art.path:find('SeraphCAS.tga',1,true),'Cancel restores rendered CAS')
-print('PASS: standard CAS renders all four caps, ignores retired flags and keeps native effects')
+assert(E.caps.left.art.path:find('Seraph.tga',1,true),'Cancel restores original baseline')
+print('PASS: original baselines render all four caps, ignores retired flags and keeps native effects')

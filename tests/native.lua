@@ -848,3 +848,45 @@ do
 end
 print('PASS: Banshee black dungeon fog, continuous whirlwind animation and native colour')
 
+
+do
+    E.devMode=true
+    local before=#scenes
+    local cold,fire=entry(),entry()
+    local cc=E.NormalizeSide({art='frostbound',flip=false},'left')
+    local fc=E.NormalizeSide({art='emberbound',flip=true},'right')
+    E.UpdateEffects(cold,cc);E.UpdateEffects(fire,fc)
+    assert(#scenes==before+7,'three frost and four fire scenes')
+    assert(cold.nativeSmoke.slots[1].actor.fileID==165792)
+    assert(cold.undercityEffects.blueGlow.nativeSmoke.slots[1].actor.fileID==165997)
+    local frostbolt=cold.undercityEffects.frostboltPrecast.nativeSmoke.slots[1]
+    assert(frostbolt.actor.fileID==1598571 and frostbolt.actor.animation[1]==0)
+    assert(frostbolt.scene.SetFrameLevelValue[1]==17,'frostbolt is above books and sigils')
+    assert(not cold.undercityEffects.skyWind,'removed swirl is not allocated')
+    assert(fire.nativeSmoke.slots[1].actor.fileID==166011)
+    assert(fire.undercityEffects.fireEmbers.nativeSmoke.slots[1].actor.fileID==609761)
+    assert(not fire.undercityEffects.sootSmoke,'retired Black Plume is not allocated')
+    assert(E.NativeEffectProfiles.fireEmbers.animation==158,'fire counterpart uses continuous Hold')
+    local amber=fire.undercityEffects.amberGlow.nativeSmoke.slots[1]
+    local precast=fire.undercityEffects.fireballPrecast.nativeSmoke.slots[1]
+    assert(precast.actor.fileID==1327008 and precast.actor.animation[1]==127)
+    assert(precast.scene.SetFrameLevelValue[1]==17,'precast renders above books and sigils')
+    assert(amber.actor.fileID==166034 and amber.scene.SetFrameLevelValue[1]==17)
+    local embers=fire.undercityEffects.fireEmbers.nativeSmoke.slots[1]
+    assert(embers.scene.SetFrameLevelValue[1]==17 and amber.scene.SetFrameLevelValue[1]==17,'baked effects render in front')
+    E.SelectEffect(fc,'fireEmbers');E.SetDevEffect(fc,'trailOpacity',0)
+    for i=1,4 do E.UpdateEffects(fire,fc) end
+    assert(#scenes==before+7 and embers.scene.alpha==0 and amber.scene.alpha>0 and precast.scene.alpha>0)
+    E.SelectEffect(cc,'frostboltPrecast');E.SetDevEffect(cc,'trailOpacity',0);E.UpdateEffects(cold,cc)
+    assert(frostbolt.scene.alpha==0 and cold.undercityEffects.blueGlow.nativeSmoke.slots[1].scene.alpha>0)
+    assert(cold.nativeSmoke.slots[1].scene.shown,'other side remains running')
+    E.UpdateEffects(fire,E.NormalizeSide({art='hidden'},'right'))
+    assert(not embers.scene.shown and not precast.scene.shown,'all retired layers hidden')
+    assert(not amber.scene.shown,'fourth layer stops with artwork')
+    assert(not precast.scene.shown,'fifth layer stops with artwork')
+    E.StopEffects(cold);assert(not cold.undercityEffects.blueGlow.nativeSmoke.slots[1].scene.shown)
+    assert(not frostbolt.scene.shown,'frostbolt stops with artwork')
+    E.PlayEffects(cold);assert(cold.undercityEffects.blueGlow.nativeSmoke.slots[1].scene.shown)
+    E.devMode=false
+end
+print('PASS: mage seven native assets, independent layers, front/back order, opacity, reuse and cleanup')

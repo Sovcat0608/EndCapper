@@ -207,6 +207,7 @@ local mirrorSide={cryptgate='left',plaguewell='right',hexbound='right',soulbound
     lunarRelic='left',stormhornTotem='right',felwing='right',violetSpire='left',kirinTor='left',cinderforged='left',cindermaw='left',rimeforged='left',rimeguard='left'}
 mirrorSide.banshee='right';mirrorSide.highGeneral='left'
 mirrorSide.zephyr='left';mirrorSide.skycutter='right'
+mirrorSide.frostbound='right';mirrorSide.emberbound='left'
 EndCapperDB=E.Normalize(nil)
 for _,side in ipairs({'left','right'}) do
     E.OpenOptions(side)
@@ -466,7 +467,7 @@ end
 p.link:Click()
 assert(p.pairDropdown:IsShown() and not p.artDropdowns.left:IsShown() and not p.artDropdowns.right:IsShown())
 p.pairDropdown:GenerateMenu()
-assert(#p.pairDropdown.menuDescription.items==18 and p.pairDropdown.menuDescription.scrollHeight==280)
+assert(#p.pairDropdown.menuDescription.items==19 and p.pairDropdown.menuDescription.scrollHeight==280)
 for _,row in ipairs(E.ArtworkPairs) do
  choose(row[1])
  local left,right=row[1],row[2] or row[1]
@@ -883,3 +884,95 @@ print('PASS: Skycutter filter comparisons removed, native effect controls preser
 
 
 assert(p.casSharpening==nil,'CAS is standard, not a menu option')
+
+EndCapperDB=E.Normalize({left={art='frostbound'},right={art='emberbound'}})
+E.devMode=true;E.OpenOptions('left')
+assert(p.dev.book==nil and p.dev.sigil.shown and not p.dev.native.shown and not E.HasChanges(),'book controls stay retired; sigil controls are separate')
+p.sliders.size:SetValue(125);p.sliders.x:SetValue(14);p.sliders.y:SetValue(42);p.flip:Click()
+assert(E.draft.left.size==125 and E.draft.left.x==14 and E.draft.left.y==42 and E.HasChanges())
+p.save:Click();assert(EndCapperDB.left.size==125 and not E.HasChanges())
+p.sliders.size:SetValue(150);p:Hide();assert(EndCapperDB.left.size==125)
+E.OpenOptions('right');assert(p.dev.sigil.shown);p.sliders.size:SetValue(130);p.save:Click()
+assert(EndCapperDB.right.size==130 and EndCapperDB.left.size==125)
+p.modeTabs.corner:Click();choose('frostbound','left');assert(p.dev.sigil.shown and p.dev.book==nil)
+assert(not p.dev.sigil.sliders.period.control.enabled,'Coldsnap does not rotate')
+p.dev.sigil.sliders.size:SetValue(130);p.dev.sigil.sliders.x:SetValue(-17);p.dev.sigil.sliders.y:SetValue(106)
+p.dev.sigil.sliders.opacity:SetValue(55);p.dev.sigil.sliders.cycle:SetValue(10);p.dev.sigil.flip:Click()
+assert(E.HasChanges() and E.GetSigilConfig(E.draft.left).x==-17)
+p.dev.sigil.report:Click();assert(printed:find('Coldsnap') and printed:find('corner left'))
+p.save:Click();assert(not E.HasChanges() and E.GetSigilConfig(EndCapperDB.left).y==106)
+p.dev.sigil.reset:Click();assert(E.GetSigilConfig(E.draft.left).y==68 and E.HasChanges())
+p:Hide();E.OpenOptions('left');assert(E.GetSigilConfig(E.draft.left).y==106,'Cancel restores saved sigil')
+choose('emberbound','right');assert(p.dev.sigil.sliders.period.control.enabled)
+p.dev.sigil.sliders.period:SetValue(60);assert(E.GetSigilConfig(E.draft.right).period==60)
+p.dev.effectsTab:Click()
+assert(p.dev.native.shown and not p.dev.sigil.shown and p.dev.haloTab.text=='Sigil')
+for _,id in ipairs({'fireFlame','fireEmbers','amberGlow','fireballPrecast'}) do assert(p.dev.radios[id].shown and p.dev.radios[id].enabled) end
+assert(not p.dev.radios.frostboltPrecast.shown,'frostbolt is frost-only')
+p.dev.radios.fireballPrecast:Click();p.dev.sliders.trailX:SetValue(-12)
+assert(E.GetEffectConfig(E.draft.right,'fireballPrecast').trailX==-12)
+assert(E.GetEffectConfig(E.draft.right,'fireEmbers').trailX==-4,'precast has independent calibration')
+p.dev.radios.fireEmbers:Click();p.dev.sliders.trailX:SetValue(27);p.dev.sliders.trailOpacity:SetValue(0)
+assert(E.GetEffectConfig(E.draft.right,'fireEmbers').trailX==27 and E.GetEffectConfig(E.draft.right,'fireEmbers').trailOpacity==0)
+assert(E.GetEffectConfig(E.draft.right,'fireFlame').trailOpacity==45,'ember calibration does not overwrite fire')
+p.dev.report:Click();assert(printed:find('Fire Motes'))
+p.save:Click();assert(not E.HasChanges())
+p.dev.sliders.trailX:SetValue(31);p:Hide();E.OpenOptions('right')
+assert(E.GetEffectConfig(E.draft.right,'fireEmbers').trailX==27,'Cancel restores saved native calibration')
+assert(E.GetEffectConfig(E.draft.right,'fireballPrecast').trailX==-12,'precast tuning survives Save/Cancel')
+choose('frostbound','left')
+for _,id in ipairs({'frostParticles','blueGlow','frostboltPrecast'}) do assert(p.dev.radios[id].shown and p.dev.radios[id].enabled) end
+p.dev.radios.frostboltPrecast:Click();p.dev.sliders.trailX:SetValue(14)
+assert(E.GetEffectConfig(E.draft.left,'frostboltPrecast').trailX==14)
+assert(E.GetEffectConfig(E.draft.left,'blueGlow').trailX==-6,'frostbolt calibration is independent')
+p.save:Click();p.dev.sliders.trailX:SetValue(19);p:Hide();E.OpenOptions('left')
+assert(E.GetEffectConfig(E.draft.left,'frostboltPrecast').trailX==14,'frostbolt calibration survives Save/Cancel')
+assert(not p.dev.radios.skyWind.shown,'Coldsnap no longer offers swirl wind')
+assert(not p.dev.radios.fireEmbers.shown)
+assert(not p.dev.radios.fireballPrecast.shown,'precast is fire-only')
+p.dev.radios.blueGlow:Click();p.dev.sliders.trailY:SetValue(33)
+assert(E.GetEffectConfig(E.draft.left,'blueGlow').trailY==33 and E.GetEffectConfig(E.draft.left,'frostParticles').trailY==45)
+p.dev.haloTab:Click();assert(p.dev.sigil.shown and not p.dev.native.shown,'Sigil tab returns independently')
+E.devMode=false;E.RefreshOptions();assert(not p.dev.shown,'calibration remains developer-only')
+E.devMode=true
+choose('skull');assert(p.dev.shown and p.dev.native.shown,'other art keeps native effect dev controls')
+p:Hide()
+print('PASS: normal book controls, separate developer sigils, Print/Save/Cancel, both modes and native panel recovery')
+
+-- Chevrons use exactly the visible menu order, including wraparound/utilities.
+local cycleApply=E.Apply
+local cycleTarget
+E.Apply=function(target,...) cycleTarget=target;return cycleApply(target,...) end
+for _,mode in ipairs({'end','corner'}) do
+    EndCapperDB=E.Normalize({mode=mode,left={art='frostbound'},right={art='emberbound'}})
+    E.OpenOptions('left')
+    assert(p.artDropdowns.left.text=='Coldsnap' and p.artDropdowns.right.text=='Combustion')
+    for _,column in ipairs({'left','right'}) do
+        local menu=p.artDropdowns[column];menu:GenerateMenu()
+        local choices=menu.menuDescription.items
+        choose(choices[1].data,column)
+        local opposite=column=='left' and 'right' or 'left';local prior=E.draft[opposite].art
+        menu.previous:Click();assert(E.draft[column].art==choices[#choices].data)
+        menu.next:Click();assert(E.draft[column].art==choices[1].data)
+        for i=2,#choices do menu.next:Click();assert(E.draft[column].art==choices[i].data) end
+        assert(E.draft[opposite].art==prior and cycleTarget==column,'cycle previews only its own side')
+        if mode=='corner' then for _,item in ipairs(choices) do assert(item.data~='default') end end
+    end
+    choose('frostbound','left');p.link:Click()
+    assert(p.pairDropdown.text=='Coldsnap / Combustion')
+    p.pairDropdown:GenerateMenu();local choices=p.pairDropdown.menuDescription.items
+    choose(choices[1].data);p.pairDropdown.previous:Click()
+    assert(E.draft.pair.art==choices[#choices].data)
+    p.pairDropdown.next:Click();assert(E.draft.pair.art==choices[1].data)
+    choose('frostbound');p.swap:Click();assert(p.pairDropdown.text=='Combustion / Coldsnap')
+    p.pairDropdown.next:Click();p.pairDropdown.previous:Click()
+    assert(E.draft.pair.art=='frostbound' and E.draft.pair.swapped,'cycling preserves Swap')
+    local art=E.draft.pair.art;InCombatLockdown=function()return true end
+    p.pairDropdown.next:Click();assert(E.draft.pair.art==art,'combat blocks cycling')
+    InCombatLockdown=function()return false end
+    p.save:Click();p.pairDropdown.next:Click();p:Hide();E.OpenOptions('left')
+    assert(E.draft.pair.art==art,'Cancel restores saved cycled selection')
+    p:Hide()
+end
+print('PASS: renamed mage labels; dropdown chevrons, menu order, wraparound, side isolation, linked Swap, mode filtering, combat and Save/Cancel')
+E.Apply=cycleApply
