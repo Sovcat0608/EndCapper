@@ -86,6 +86,7 @@ local function updateMultiEffects(entry, config)
 end
 
 local function stopCustomEffects(entry)
+    if E.StopTimeworks then E.StopTimeworks(entry) end
     if E.StopMageSigils then E.StopMageSigils(entry) end
     if E.StopMageBooks then E.StopMageBooks(entry) end
     if E.StopSkycutter then E.StopSkycutter(entry) end
@@ -98,6 +99,7 @@ local function stopCustomEffects(entry)
     if E.StopGlyphs then E.StopGlyphs(entry) end
 end
 function E.StopEffects(entry)
+    if E.StopAddedEffects then E.StopAddedEffects(entry) end
     stopCustomEffects(entry)
     if E.StopNativeSmoke then E.StopNativeSmoke(entry) end
     if entry.secondaryEffect and E.StopNativeSmoke then E.StopNativeSmoke(entry.secondaryEffect) end
@@ -112,6 +114,8 @@ local function stopUnusedNative(entry)
     if secondary and not secondary.nativeWanted then E.StopNativeSmoke(secondary) end
 end
 function E.PlayEffects(entry)
+    if E.PlayAddedEffects then E.PlayAddedEffects(entry) end
+    if E.PlayTimeworks then E.PlayTimeworks(entry) end
     if E.PlayMageBooks then E.PlayMageBooks(entry) end
     if E.PlayMageSigils then E.PlayMageSigils(entry) end
     -- The boat remains visible as static artwork when effects are disabled.
@@ -152,6 +156,8 @@ function E.UpdateEffects(entry, config)
     updateHiltEyeTrail(entry, config)
     updateWarlockShadow(entry, config)
     updateMultiEffects(entry, config)
+    if E.UpdateAddedEffects then E.UpdateAddedEffects(entry,config) end
+    if E.UpdateTimeworks then E.UpdateTimeworks(entry,config) end
     if E.UpdateSkycutter then E.UpdateSkycutter(entry,config) end
     if E.UpdateMageBooks then E.UpdateMageBooks(entry,config) end
     if E.UpdateMageSigils then E.UpdateMageSigils(entry,config) end

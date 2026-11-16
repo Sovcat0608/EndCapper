@@ -129,7 +129,7 @@ local function fail(entry, reason, timedOut)
     E.StopNativeSmoke(entry)
 end
 local function loaded(state)
-    local profile=E.NativeEffectProfiles[state.profileID]
+    local profile=state.profile or E.NativeEffectProfiles[state.profileID]
     for _, slot in ipairs(state.slots) do
         if not slot.actor:IsLoaded() then return false end
         if profile and slot.actor.GetModelFileID and slot.actor:GetModelFileID()~=profile.fileID then return false end
@@ -201,8 +201,8 @@ function E.PlayNativeSmoke(entry)
         end
         return
     end
-    for _, slot in ipairs(state.slots) do slot.scene:Show() end
     if state.status == "loading" then poll(entry) end
+    for _, slot in ipairs(state.slots) do slot.scene:Show() end
 end
 local function create(entry)
     local state = {slots = {}, status = "loading", attempts = 0, retries = 0, generation = 0}
@@ -233,11 +233,13 @@ end
 function E.UpdateNativeSmoke(entry, config)
     if not entry.nativeWanted then return false end
     if InCombatLockdown() then E.pending = true; return false end
-    local id = E.NativeEffectProfiles[config.nativeEffect] and config.nativeEffect or "coldFlame"
-    local p = E.NativeEffectProfiles[id]
+    local id = entry.libraryProfile and ("library:"..entry.libraryProfile.fileID..":"..entry.libraryProfile.animation) or
+        (E.NativeEffectProfiles[config.nativeEffect] and config.nativeEffect or "coldFlame")
+    local p = entry.libraryProfile or E.NativeEffectProfiles[id]
     local opacity = (config.trailOpacity or 100)/100
     local ok, result = pcall(function()
         local state = entry.nativeSmoke or create(entry)
+        state.profile=p
         if state.profileID ~= id then
             -- Reuse the same scenes/actors and invalidate callbacks for the old selection.
             state.profileID = id
@@ -272,7 +274,7 @@ function E.UpdateNativeSmoke(entry, config)
         for _, slot in ipairs(state.slots) do
             local frontLevel=(config.art=="violetSpire" or config.art=="soulbound" or config.art=="skycutter") and 4 or 3
             if E.MageNativeEffects and E.MageNativeEffects[config.art] then frontLevel=7 end
-            slot.scene:SetFrameLevel(entry.frame:GetFrameLevel()+(config.effectLayer=="back" and 1 or frontLevel))
+            slot.scene:SetFrameLevel(entry.frame:GetFrameLevel()+(entry.libraryLevel or (config.effectLayer=="back" and 1 or frontLevel)))
             -- Reset pooled scenes to native colour unless this profile opts out.
             if slot.scene.SetDesaturation then
                 slot.scene:SetDesaturation(p.desaturation or 0)
@@ -298,6 +300,18 @@ function E.UpdateNativeSmoke(entry, config)
                 slot.scene:SetCameraOrientationByAxisVectors(0,direction*ce,-se,
                     direction*sine,se*cosine,direction*ce*cosine,
                     -cosine,direction*se*sine,ce*sine)
+            end
+            if p.cameraAzimuth then
+                -- Match EffectViewer's orbit, with the cap angle applied as camera roll.
+                local az,el=math.rad(p.cameraAzimuth),math.rad(p.cameraElevation or 0)
+                local sa,ca,se,ce=math.sin(az),math.cos(az),math.sin(el),math.cos(el)
+                local fx,fy,fz=direction*sa*ce,direction*ca*ce,-se
+                local bx,by=direction*ca,-direction*sa
+                local vx,vy,vz=direction*sa*se,direction*ca*se,ce
+                slot.scene:SetCameraPosition(-8*fx,-8*fy,-8*fz)
+                slot.scene:SetCameraOrientationByAxisVectors(fx,fy,fz,
+                    bx*sine+vx*direction*cosine,by*sine+vy*direction*cosine,vz*direction*cosine,
+                    -bx*direction*cosine+vx*sine,-by*direction*cosine+vy*sine,vz*sine)
             end
             local biasX, biasY = direction*0.5, 0.15
             -- Symmetric models get a genuinely centred viewport. Preserve the
@@ -334,7 +348,7 @@ local function nativeStatus(entry)
     if not entry.nativeWanted then return "native effects disabled" end
     local state = entry.nativeSmoke
     if not state then return "not initialized" end
-    local p = E.NativeEffectProfiles[state.profileID]
+    local p = state.profile or E.NativeEffectProfiles[state.profileID]
     if state.status == "ready" then
         local scene=state.slots[1] and state.slots[1].scene
         local overlap="unavailable"

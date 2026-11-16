@@ -191,7 +191,7 @@ choose('default'); assert(not p.dev.behind.enabled)
 p:Hide()
 print('PASS: totem exclusive radios, isolated calibration, Print/Reset/Cancel and dev-only layer control with persistent applied values')
 E.devMode=true; E.OpenOptions('left'); choose('felwing'); selected('felDrip'); p.dev.radios.felGlow:Click(); selected('felGlow')
-assert(p.dev.note.text:find('All three run',1,true) and not p.dev.radios.blueGlow:IsShown())
+assert(p.dev.note.text:find('Open effects',1,true) and not p.dev.radios.blueGlow:IsShown())
 assert(p.artDropdowns.left.point[3]-p.artDropdowns.left.height>p.controls.point[3]+p.flip.point[3], 'flip stays below the artwork grid')
 p.dev.sliders.trailX:SetValue(12); p.dev.radios.felDrip:Click(); selected('felDrip')
 assert(p.dev.sliders.trailX.value==67)
@@ -208,6 +208,8 @@ local mirrorSide={cryptgate='left',plaguewell='right',hexbound='right',soulbound
 mirrorSide.banshee='right';mirrorSide.highGeneral='left'
 mirrorSide.zephyr='left';mirrorSide.skycutter='right'
 mirrorSide.frostbound='right';mirrorSide.emberbound='left'
+mirrorSide.timekeeper='left';mirrorSide.timelost='right'
+
 EndCapperDB=E.Normalize(nil)
 for _,side in ipairs({'left','right'}) do
     E.OpenOptions(side)
@@ -254,7 +256,7 @@ p:Hide()
 print('PASS: all artwork/side default facings, checkbox reversal, art switching, reload/Cancel and saved appearance compatibility')
 E.devMode=true;E.OpenOptions('right');choose('violetSpire')
 selected('arcaneGlow');assert(not p.dev.radios.arcaneGlow.enabled)
-assert(p.dev.note.text:find('Native glow only',1,true) and not p.dev.behind.checked)
+assert(p.dev.note.text:find('Effect studio',1,true) and not p.dev.behind.checked)
 p.dev.sliders.trailX:SetValue(-30);p.dev.sliders.trailOpacity:SetValue(21);p.dev.behind:Click()
 E.Commit();EndCapperDB=E.Normalize(EndCapperDB);E.Begin();E.RefreshOptions()
 assert(p.dev.sliders.trailX.value==-30 and p.dev.sliders.trailOpacity.value==21 and p.dev.behind.checked)
@@ -266,7 +268,7 @@ p:Hide()
 print('PASS: arcane dev glow calibration, Print/Reset/Cancel/reload, layer controls and artwork grid spacing')
 EndCapperDB=E.Normalize({version=14,left={art='violetSpire'},right={art='violetSpire'}})
 E.devMode=true;E.OpenOptions('left')
-assert(p.dev.seal:IsShown() and p.dev.height==510 and p.dev.seal.slider.value==153)
+assert(p.dev.seal:IsShown() and p.dev.height==145 and p.dev.seal.slider.value==153)
 p.dev.seal.slider:SetValue(175);p.dev.sliders.trailOpacity:SetValue(23)
 assert(E.GetEffectConfig(E.draft.left).sealSize==175 and E.GetEffectConfig(E.draft.right).sealSize==153)
 p.dev.report:Click();assert(printed:find('seal=175%',1,true))
@@ -277,7 +279,7 @@ p.dev.reset:Click();assert(p.dev.seal.slider.value==153);p:Hide()
 E.devMode=false;E.OpenOptions('left');assert(not p.dev.seal:IsShown())
 p.dev.seal.slider:SetValue(50);assert(E.GetEffectConfig(E.draft.left).sealSize==175)
 E.devMode=true;E.RefreshOptions();choose('wolf')
-assert(not p.dev.seal:IsShown() and p.dev.height==453)
+assert(not p.dev.seal:IsShown() and p.dev.height==105)
 p.dev.seal.slider:SetValue(50);choose('violetSpire');assert(p.dev.seal.slider.value==175)
 p.right:Click();assert(p.dev.seal.slider.value==153)
 p:Hide()
@@ -292,7 +294,7 @@ for _,art in ipairs({'cinderforged','cindermaw'}) do
     assert(p.dev.radios.fireGlow.shown and p.dev.radios.fireFlame.shown and not p.dev.seal.shown)
     p.dev.radios.fireFlame:Click();selected('fireFlame')
     assert(p.dev.sliders.trailX.mouse and p.dev.behind.enabled)
-    assert(p.dev.note.text:find('cracks stay fixed',1,true))
+    assert(p.dev.note.text:find('Open effects',1,true))
 end
 print('PASS: two molten choices, native edit radios and dev controls; no seal/eye controls')
 E.devMode=true;E.OpenOptions('right')
@@ -302,7 +304,7 @@ for _,art in ipairs({'rimeforged','rimeguard'}) do
     p.dev.radios.frostEnchant:Click();selected('frostEnchant')
     p.dev.sliders.trailX:SetValue(39);p.dev.report:Click();assert(printed:find('Frost Form',1,true))
     p.dev.radios.coldFlame:Click();assert(p.dev.sliders.trailX.value==(art=='rimeforged' and -150 or -89))
-    assert(p.dev.note.text:find('emission stays fixed',1,true))
+    assert(p.dev.note.text:find('Open effects',1,true))
 end
 assert(p.height==614)
 print('PASS: frost native edit radios, independent slider/report controls and fourteen-choice grid')
@@ -314,8 +316,8 @@ p.dev.radios.moonwellGlow:Click();assert(p.dev.sliders.trailOpacity.value==23)
 p.dev.radios.waterRipple:Click();assert(p.dev.sliders.trailX.value==38)
 print('PASS: Moonwell radios, independent calibration, report and expanded chooser')
 choose('seraph');selected('holyGlow')
-assert(p.dev.effectsTab:IsShown() and p.dev.haloTab:IsShown() and p.dev.height==487)
-assert(p.dev.radios.sunRays:IsShown() and not p.dev.halo:IsShown())
+assert(not p.dev.effectsTab:IsShown() and not p.dev.haloTab:IsShown() and p.dev.height==440)
+assert(p.dev.radios.sunRays:IsShown() and p.dev.halo:IsShown())
 p.dev.sliders.trailOpacity:SetValue(29);p.dev.radios.sunRays:Click();selected('sunRays')
 p.dev.sliders.trailX:SetValue(17);p.dev.behind:Click();p.dev.report:Click()
 assert(printed:find('Seraph / Divine Radiance',1,true) and printed:find('layer=back',1,true))
@@ -341,7 +343,7 @@ for _,spec in ipairs({{'sanctum','holyGlow','sunRays','Sanctum / Divine Radiance
     {'eclipse','voidGlow','voidSmoke','Eclipse / Void Smoke',18}}) do
     local art,glow,other,report,opacity=unpack(spec)
     choose(art);selected(glow)
-    assert(p.dev.height==453 and not p.dev.halo:IsShown() and p.dev.report:IsShown())
+    assert(p.dev.height==105 and not p.dev.halo:IsShown() and p.dev.report:IsShown())
     assert(not p.dev.haloTab:IsShown() and not p.dev.effectsTab:IsShown() and p.dev.sliders.trailX:IsShown())
     assert(p.dev.radios[other]:IsShown() and p.dev.behind:IsShown())
     p.dev.sliders.trailOpacity:SetValue(19);p.dev.radios[other]:Click();selected(other)
@@ -467,7 +469,7 @@ end
 p.link:Click()
 assert(p.pairDropdown:IsShown() and not p.artDropdowns.left:IsShown() and not p.artDropdowns.right:IsShown())
 p.pairDropdown:GenerateMenu()
-assert(#p.pairDropdown.menuDescription.items==19 and p.pairDropdown.menuDescription.scrollHeight==280)
+assert(#p.pairDropdown.menuDescription.items==20 and p.pairDropdown.menuDescription.scrollHeight==280)
 for _,row in ipairs(E.ArtworkPairs) do
  choose(row[1])
  local left,right=row[1],row[2] or row[1]
@@ -592,7 +594,7 @@ EndCapperDB=E.Normalize(nil);E.devMode=true;E.OpenOptions('left')
 choose('frostmourneHilt','left');selected('frostGlow')
 assert(p.dev.radios.frostMist:IsShown() and not p.dev.radios.frostEnchant:IsShown())
 assert(p.dev.radios.coldFlame:IsShown() and p.dev.radios.coldFlame.enabled)
-assert(p.dev.height==478 and p.dev.controls.point[5]==-25)
+assert(p.dev.height==105 and not p.dev.native:IsShown())
 p.dev.sliders.trailOpacity:SetValue(31)
 p.dev.radios.frostMist:Click();selected('frostMist');p.dev.sliders.trailX:SetValue(44)
 p.dev.report:Click();assert(printed:find('Frosthilt / Icy Mist',1,true))
@@ -611,7 +613,7 @@ assert(p.dev.sliders.trailSize.value==50 and p.dev.sliders.trailAngle.value==-16
 assert(p.dev.sliders.trailX.value==-36 and p.dev.sliders.trailY.value==17)
 assert(E.GetEffectConfig(E.draft.left,'frostGlow').trailOpacity==31 and E.GetEffectConfig(E.draft.left,'frostMist').trailX==44)
 choose('frostmourneBlade','right')
-assert(not p.dev.radios.coldFlame:IsShown() and p.dev.height==453)
+assert(not p.dev.radios.coldFlame:IsShown() and p.dev.height==105)
 choose('frostmourneHilt','left')
 p.link:Click();assert(p.pairDropdown.text=='Frosthilt / Frostblade')
 assert(E.draft.left.art=='frostmourneHilt' and E.draft.right.art=='frostmourneBlade')
@@ -830,7 +832,7 @@ for _,side in ipairs({'left','right'}) do
     local ids=E.SylvanasEffects[E.draft[side].art]
     local visible=0
     for _,radio in pairs(p.dev.radios) do if radio.shown then visible=visible+1 end end
-    assert(visible==#ids and p.dev.note.text:find(side=='right' and 'All five run' or 'All four run',1,true))
+    assert(visible==#ids and p.dev.note.text:find('Open effects',1,true))
     for i,id in ipairs(ids) do
         assert(p.dev.radios[id].shown and p.dev.radios[id].enabled)
         p.dev.radios[id]:Click()
@@ -854,7 +856,7 @@ for _,side in ipairs({'left','right'}) do
     local ids=E.ZephrasEffects[E.draft[side].art]
     local visible=0
     for _,radio in pairs(p.dev.radios) do if radio.shown then visible=visible+1 end end
-    assert(visible==3 and p.dev.note.text:find('Both winds',1,true))
+    assert(visible==3 and p.dev.note.text:find('Open effects',1,true))
     for i,id in ipairs(ids) do
         assert(p.dev.radios[id].shown and p.dev.radios[id].enabled)
         p.dev.radios[id]:Click()
@@ -906,7 +908,7 @@ p:Hide();E.OpenOptions('left');assert(E.GetSigilConfig(E.draft.left).y==106,'Can
 choose('emberbound','right');assert(p.dev.sigil.sliders.period.control.enabled)
 p.dev.sigil.sliders.period:SetValue(60);assert(E.GetSigilConfig(E.draft.right).period==60)
 p.dev.effectsTab:Click()
-assert(p.dev.native.shown and not p.dev.sigil.shown and p.dev.haloTab.text=='Sigil')
+assert(not p.dev.native.shown and p.dev.sigil.shown)
 for _,id in ipairs({'fireFlame','fireEmbers','amberGlow','fireballPrecast'}) do assert(p.dev.radios[id].shown and p.dev.radios[id].enabled) end
 assert(not p.dev.radios.frostboltPrecast.shown,'frostbolt is frost-only')
 p.dev.radios.fireballPrecast:Click();p.dev.sliders.trailX:SetValue(-12)
@@ -935,7 +937,7 @@ assert(E.GetEffectConfig(E.draft.left,'blueGlow').trailY==33 and E.GetEffectConf
 p.dev.haloTab:Click();assert(p.dev.sigil.shown and not p.dev.native.shown,'Sigil tab returns independently')
 E.devMode=false;E.RefreshOptions();assert(not p.dev.shown,'calibration remains developer-only')
 E.devMode=true
-choose('skull');assert(p.dev.shown and p.dev.native.shown,'other art keeps native effect dev controls')
+choose('skull');assert(p.dev.shown and not p.dev.native.shown,'native controls now live in the library')
 p:Hide()
 print('PASS: normal book controls, separate developer sigils, Print/Save/Cancel, both modes and native panel recovery')
 
@@ -976,3 +978,35 @@ for _,mode in ipairs({'end','corner'}) do
 end
 print('PASS: renamed mage labels; dropdown chevrons, menu order, wraparound, side isolation, linked Swap, mode filtering, combat and Save/Cancel')
 E.Apply=cycleApply
+
+-- Library entry point follows the real options target, including linked editing.
+local libraryOpens,libraryCloses=0,0
+E.EffectLibrary={Open=function()libraryOpens=libraryOpens+1 end,Close=function()libraryCloses=libraryCloses+1 end,RefreshTarget=function()end}
+EndCapperDB=E.Normalize({left={art='timekeeper'},right={art='timelost'}})
+E.devMode=true;E.OpenOptions('left')
+assert(p.openEffects.shown and p.openEffects.enabled)
+local target,targetSide,targetMode=E.GetEffectLibraryTarget()
+assert(target==E.draft.left and targetSide=='left' and targetMode=='end')
+p.openEffects:Click();assert(libraryOpens==1)
+p.link:Click();E.SelectCapSide('right');target,targetSide=E.GetEffectLibraryTarget();assert(target==E.draft.right and targetSide=='right')
+p.modeTabs.corner:Click();target,targetSide,targetMode=E.GetEffectLibraryTarget();assert(targetMode=='corner')
+E.devMode=false;E.RefreshOptions();assert(not p.openEffects.shown and not E.GetEffectLibraryTarget())
+E.devMode=true;p:Hide();assert(libraryCloses>0 and not E.GetEffectLibraryTarget())
+E.EffectLibrary=nil
+print('PASS: Open effects entry point, developer visibility, selected sister in linked mode, cap-mode target and close cleanup')
+
+EndCapperDB=E.Normalize({left={art="frostbound"},right={art="emberbound"}})
+function p.dev:SetParent(parent)self.parent=parent end
+E.OpenOptions('left');local studio=widget()
+E.DockCustomElements(studio,true);assert(p.dev.parent==studio and p.dev.shown)
+E.RefreshOptions();assert(p.dev.parent==studio and p.dev.shown)
+E.DockCustomElements(studio,false);assert(not p.dev.shown)
+E.DockCustomElements(nil,false);assert(p.dev.parent==p and p.dev.shown)
+E.EffectLibrary=E.EffectLibrary or {}
+local oldWindow=E.EffectLibrary.window;E.EffectLibrary.window={saveAll=widget()}
+p.dev.sigil.sliders.opacity:SetValue(73);assert(E.EffectLibrary.window.saveAll.enabled)
+E.SaveEffectStudio();assert(not E.HasChanges() and not E.EffectLibrary.window.saveAll.enabled)
+p.dev.sigil.sliders.opacity:SetValue(85);E.CancelEffectStudio();assert(E.GetSigilConfig(E.draft.left).opacity==73 and not E.HasChanges())
+E.EffectLibrary.window=oldWindow
+p:Hide()
+print('PASS: studio custom-art docking/restoration and shared Save/Cancel transaction')

@@ -1,5 +1,5 @@
 local _, E = ...
-E.schemaVersion = 43
+E.schemaVersion = 47
 -- Approved multi-art bake from applied 2026-11-10 save; see docs/rebake-rc14.md.
 E.UndeadArtworks={skull=true,lordaeron=true}
 E.WorgenArtworks={wolf=true,whiteWorgen=true}
@@ -328,8 +328,11 @@ function E.SelectedEffect(config)
     if config.art=="felwing" and (not tuning or tuning.selectedEffect~="felGlow") then return "felDrip" end
     return (E.EffectProfiles[config.art] or E.SkullEffect).nativeEffect
 end
+E.TimeArtworks={timekeeper=true,timelost=true}
 E.MageArtworks={frostbound="Frostbound",emberbound="Emberbound"}
 E.artworks = {
+    { id = "timekeeper", name = "Timelost", path = "Interface\\AddOns\\EndCapper\\Media\\Timekeeper.tga", width=225, height=150 },
+    { id = "timelost", name = "Timekeeper", path = "Interface\\AddOns\\EndCapper\\Media\\Timelost.tga", width=225, height=150 },
     { id = "frostbound", name = "Coldsnap", path = "Interface\\AddOns\\EndCapper\\Media\\FrostboundBookCASSize887.tga", floatingOnly=true, width=225, height=225 },
     { id = "emberbound", name = "Combustion", path = "Interface\\AddOns\\EndCapper\\Media\\EmberboundBookCASSize887.tga", floatingOnly=true, width=225, height=225 },
     { id = "zephyr", name = "Zephyr", path = "Interface\\AddOns\\EndCapper\\Media\\Zephyr.tga", width=225, height=150 },
@@ -368,7 +371,7 @@ E.artworks = {
 E.artworkByID = {}
 for _, artwork in ipairs(E.artworks) do E.artworkByID[artwork.id] = artwork end
 -- Chooser rows are also the authoritative sister relationships.
-E.ArtworkPairs={{"skull","lordaeron"},{"wolf","whiteWorgen"},{"moonbough","lunarRelic"},
+E.ArtworkPairs={{"timekeeper","timelost"},{"skull","lordaeron"},{"wolf","whiteWorgen"},{"moonbough","lunarRelic"},
     {"frostbound","emberbound"},
     {"zephyr","skycutter"},
     {"banshee","highGeneral"},
@@ -384,6 +387,7 @@ end
 -- Saved flip remains the actual texture/effect mirror state for compatibility.
 -- The UI checkbox reverses this artwork's default facing on the selected side.
 function E.DefaultMirror(art, side)
+    if E.TimeArtworks[art] then return side==(art=="timekeeper" and "left" or "right") end
     if E.MageArtworks[art] then return side==(art=="frostbound" and "right" or "left") end
     if E.ZephrasEffects[art] then return side==(art=="zephyr" and "left" or "right") end
     if E.SylvanasEffects[art] then return side==(art=="banshee" and "right" or "left") end
@@ -630,9 +634,80 @@ function E.SetEffectLayer(config, layer)
     config.effectLayers[config.art]=config.effectLayers[config.art] or {}
     config.effectLayers[config.art][E.SelectedEffect(config)]=layer
 end
+-- Approved End Cap bake, 2026-11-14 17:31:55 UTC. Stable IDs retain artwork identity.
+E.AddedEffectDefaults={
+timekeeper={
+{trailY=25,desaturation=0,originX=8.938457489013672,animation=0,scale=0.0101454940884725,trailOpacity=100,trailX=-5,originZ=35.36475467681885,originY=-11.97270965576172,trailSize=90,name="7fx argus vol sparkles",elevation=0,azimuth=0,trailAngle=-63,effectLayer="front",fileID=1688083},
+{trailY=-63,desaturation=0,originX=-0.0436069518327713,animation=0,scale=1.4266095574416,trailOpacity=2,trailX=-15,originZ=-0.1613864898681641,originY=-0.004696518182754517,trailSize=100,name="8fx priestessalunza holy precast hand",elevation=0,azimuth=0,trailAngle=90,effectLayer="front",fileID=1847687},
+{trailY=15,desaturation=0,originX=0.0232977532,animation=158,scale=1.5,trailOpacity=4,trailX=-21,originZ=0.0206381083,originY=0.0576375052,trailSize=109,name="Divine Radiance",elevation=0,azimuth=0,trailAngle=25,effectLayer="front",fileID=610642},
+{trailY=38,desaturation=0,originX=-0.1388888955,animation=0,scale=1,trailOpacity=30,trailX=-5,originZ=0,originY=0,trailSize=50,name="Amber Flow",elevation=0,azimuth=0,trailAngle=110,effectLayer="front",fileID=166033}
+},timelost={
+{trailY=-45,desaturation=0,originX=8.938457489013672,animation=0,scale=0.0101454940884725,trailOpacity=100,trailX=23,originZ=35.36475467681885,originY=-11.97270965576172,trailSize=89,name="7fx argus vol sparkles",elevation=0,azimuth=0,trailAngle=71,effectLayer="front",fileID=1688083},
+{trailY=-4,desaturation=0,originX=0.03946742415428162,animation=0,scale=1.289892548421206,trailOpacity=3,trailX=21,originZ=-0.0318242609500885,originY=-0.001102954149246216,trailSize=62,name="8fx generic spark precast breath",elevation=0,azimuth=0,trailAngle=90,effectLayer="front",fileID=2318728},
+{trailY=-15,desaturation=0,originX=-0.04684549570083618,animation=0,scale=0.8102861246375469,trailOpacity=4,trailX=26,originZ=-0.2195143103599548,originY=0.001903772354125977,trailSize=100,name="Cfx paladin holyprecastgeneric precasthand",elevation=0,azimuth=0,trailAngle=90,effectLayer="front",fileID=2451919},
+{trailY=0,desaturation=0,originX=0.0232977532,animation=158,scale=1.5,trailOpacity=2,trailX=22,originZ=0.0206381083,originY=0.0576375052,trailSize=100,name="Divine Radiance",elevation=0,azimuth=0,trailAngle=90,effectLayer="front",fileID=610642}
+}}
+E.AddedEffectLimit=16
+local function finite(value,fallback,low,high)
+    if type(value)~="number" or value~=value or value==math.huge or value==-math.huge then return fallback end
+    return math.max(low,math.min(high,value))
+end
+function E.NormalizeAddedEffect(v)
+    if type(v)~="table" or type(v.fileID)~="number" or v.fileID~=math.floor(v.fileID) or v.fileID<1 or v.fileID>4294967295 then return end
+    local result={fileID=v.fileID,name=type(v.name)=="string" and v.name:sub(1,100) or ("Model "..v.fileID),
+        animation=math.floor(finite(v.animation,0,0,65535)),scale=finite(v.scale,1,.000001,10000),
+        originX=finite(v.originX,0,-100000,100000),originY=finite(v.originY,0,-100000,100000),originZ=finite(v.originZ,0,-100000,100000),
+        azimuth=finite(v.azimuth,0,-360,360),elevation=finite(v.elevation,0,-90,90),
+        desaturation=finite(v.desaturation,0,0,1),effectLayer=v.effectLayer=="back" and "back" or "front"}
+    for _,spec in ipairs(E.devEffectFields) do
+        local defaults={trailSize=100,trailAngle=90,trailX=0,trailY=0,trailOpacity=70}
+        result[spec[1]]=finite(v[spec[1]],defaults[spec[1]],spec[3],spec[4])
+    end
+    -- Retired spell behavior/binding fields are intentionally not persisted.
+    return result
+end
+function E.NormalizeAddedEffects(value)
+    local result={}
+    if type(value)~="table" then return result end
+    for art,rows in pairs(value) do
+        if E.artworkByID[art] and E.artworkByID[art].path and type(rows)=="table" then
+            local list={}
+            for i=1,E.AddedEffectLimit do
+                local item=E.NormalizeAddedEffect(rows[i]);if item then list[#list+1]=item end
+            end
+            -- An explicit empty list means the user removed all baked layers.
+            result[art]=list
+        end
+    end
+    return result
+end
+function E.GetAddedEffects(config)
+    local explicit=config.addedEffects and config.addedEffects[config.art]
+    if explicit then return explicit end
+    local defaults=E.AddedEffectDefaults[config.art]
+    return defaults and E.NormalizeAddedEffects({[config.art]=defaults})[config.art] or {}
+end
+function E.EditAddedEffects(config)
+    local rows=E.GetAddedEffects(config)
+    config.addedEffects=config.addedEffects or {};config.addedEffects[config.art]=rows
+    return rows
+end
+function E.AddLibraryEffect(config,value)
+    if not E.devMode or not config or not E.artworkByID[config.art] or not E.artworkByID[config.art].path then return end
+    local item=E.NormalizeAddedEffect(value);if not item then return end
+    config.addedEffects=E.NormalizeAddedEffects(config.addedEffects)
+    local rows=E.GetAddedEffects(config);if #rows>=E.AddedEffectLimit then return end
+    rows[#rows+1]=item;config.addedEffects[config.art]=rows;return #rows
+end
+function E.RemoveLibraryEffect(config,index)
+    if not E.devMode then return end
+    local rows=E.EditAddedEffects(config)
+    if type(index)=="number" and index>=1 and index<=#rows then table.remove(rows,index) end
+end
 function E.NormalizeSide(value, side)
     value = type(value) == "table" and value or {}
     local art = value.art
+    if art=="arcaneTome" or art=="arcaneScroll" then art="hidden" end
     if not E.artworkByID[art] then art = "skull" end
     local flip = value.flip
     if type(flip) ~= "boolean" then flip = E.DefaultMirror(art,side) end
@@ -681,7 +756,8 @@ function E.NormalizeSide(value, side)
         frameBottom=value.frameBottom~=false,artBottom=value.artBottom~=false,
         frameX=type(value.frameX)=="number" and number(value.frameX,0,-10000,10000) or nil,
         frameY=type(value.frameY)=="number" and number(value.frameY,0,-10000,10000) or nil,
-        effects = true, nativeSmoke = true, devEffects=devEffects, effectLayers=effectLayers,halos=halos,books=books,sigils=sigils })
+        effects = true, nativeSmoke = true, devEffects=devEffects, effectLayers=effectLayers,halos=halos,books=books,sigils=sigils,
+        addedEffects=E.NormalizeAddedEffects(value.addedEffects) })
 end
 local function normalizeMode(value,mode,version,skipProfiles)
     local enabled=value.enabled
@@ -715,7 +791,7 @@ local function normalizeMode(value,mode,version,skipProfiles)
         end
     end
     local p=type(value.pair)=="table" and value.pair or {}
-    local art=E.PairByArt[p.art] and p.art or result.left.art
+    local art=(p.art=="arcaneTome" or p.art=="arcaneScroll") and "hidden" or (E.PairByArt[p.art] and p.art or result.left.art)
     if mode=="corner" and art=="default" then art="hidden" end
     -- Default and Hidden are utility choices, not sisters.
     local row=E.PairByArt[art]
@@ -738,6 +814,10 @@ local function normalizeMode(value,mode,version,skipProfiles)
         -- Replace the old linked clone with the new sister, keeping black left.
         result.pair.swapped=false
     end
+    -- Pair flip is relative to the default facing. Preserve saved visual facing
+    -- when adopting the reversed time-pair defaults, once for each saved mode.
+    local migrateTimeFacing=type(version)=="number" and version<44
+    if migrateTimeFacing and E.TimeArtworks[result.pair.art] then result.pair.flip=not result.pair.flip end
     if mode=="corner" then result.pair.centerX=nil end
     if result.pair.linked then E.SyncPair(result) end
     result.positionProfiles={}
@@ -745,7 +825,11 @@ local function normalizeMode(value,mode,version,skipProfiles)
         local count=0
         for key,profile in pairs(value.positionProfiles) do
             if type(key)=="string" and #key<=512 and type(profile)=="table" and count<128 then
-                result.positionProfiles[key]=E.NormalizePosition(profile,result);count=count+1
+                local normalized=E.NormalizePosition(profile,result)
+                if migrateTimeFacing and type(profile.pair)=="table" and E.TimeArtworks[profile.pair.art] then
+                    normalized.pair.flip=not normalized.pair.flip
+                end
+                result.positionProfiles[key]=normalized;count=count+1
             end
         end
     end
@@ -801,6 +885,7 @@ function E.NormalizePosition(value,selection)
         local source=type(value[side])=="table" and value[side] or {}
         local fallback=selection[side] or {}
         local art,flip=source.art,source.flip
+        if art=="arcaneTome" or art=="arcaneScroll" then art="hidden" end
         if not E.artworkByID[art] then art,flip=fallback.art,fallback.flip end
         if not E.artworkByID[art] then art="skull" end
         if selection.mode=="corner" and art=="default" then art="hidden" end
@@ -813,6 +898,7 @@ function E.NormalizePosition(value,selection)
     local p=type(value.pair)=="table" and value.pair or {}
     local fallback=selection.pair or {}
     local art,swapped,flip=p.art,p.swapped,p.flip
+    if art=="arcaneTome" or art=="arcaneScroll" then art="hidden" end
     if not E.PairByArt[art] then art,swapped,flip=fallback.art,fallback.swapped,fallback.flip end
     if not E.PairByArt[art] then art=result.left.art end
     if selection.mode=="corner" and art=="default" then art="hidden" end
@@ -963,6 +1049,13 @@ local function editableSettings(db,includeEffects)
             settings.effects[art]=tuning
         end end
         if includeEffects then
+            settings.addedEffects={}
+            local arts={};for art in pairs(E.AddedEffectDefaults) do arts[art]=true end
+            for art in pairs(c.addedEffects or {}) do arts[art]=true end
+            for art in pairs(arts) do
+                local rows=E.GetAddedEffects({art=art,addedEffects=c.addedEffects})
+                if #rows>0 then settings.addedEffects[art]=rows end
+            end
             settings.books={}
             for art in pairs(E.MageArtworks) do settings.books[art]=E.GetBookConfig({art=art,books=c.books}) end
             settings.sigils={}

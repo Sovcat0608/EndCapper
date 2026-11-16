@@ -50,7 +50,7 @@ print('PASS: semantic unsaved changes, restoring original values/defaults, nativ
 
 for _,oldValue in ipairs({false,true}) do
     EndCapperDB=E.Normalize({version=42,casSharpening=oldValue,left={art='skycutter',size=137},otherMode={left={art='seraph'}}})
-    assert(EndCapperDB.version==43 and EndCapperDB.casSharpening==nil)
+    assert(EndCapperDB.version==47 and EndCapperDB.casSharpening==nil)
     assert(EndCapperDB.left.art=='skycutter' and EndCapperDB.left.size==137 and EndCapperDB.otherMode.left.art=='seraph')
     E.Begin();assert(not E.HasChanges());E.Commit();assert(EndCapperDB.casSharpening==nil)
     assert(E.ArtworkTexture('Media/Zephyr.tga')=='Media/ZephyrCAS.tga')

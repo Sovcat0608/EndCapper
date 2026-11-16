@@ -159,7 +159,7 @@ local function checkNative(entry,config,scene,level)
     end
 end
 for _,art in ipairs(E.artworks) do
-    if art.path and not E.MageArtworks[art.id] then
+    if art.path and not E.MageArtworks[art.id] and not E.TimeArtworks[art.id] then
         assert(E.EffectBaselines[art.id],"missing artwork baseline: "..art.id)
         local e=entry()
         for _,mirror in ipairs({false,true}) do

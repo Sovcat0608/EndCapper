@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.4.7 — 2026-11-16
+
+- Added **Timelost / Timekeeper**, bringing the collection to **34 custom designs**. Timelost features a bronze dragon hourglass with flowing animated sand; Timekeeper features three independently rotating gears between its backdrop and foreground.
+- Added masked amber glyph emissions and soft local bloom, plus the approved native effect placement and default facing for both sisters.
+- Added a searchable developer effect library with live previews and independently adjustable layers. Add, remove or tune effects by size, angle, position, opacity, animation and front/behind placement in either cap mode.
+- Kept native effects in the effect library and custom artwork controls in their own panel, with shared Save/Cancel and custom-panel docking.
+- Removed the experimental Arcane Tome / Arcane Scroll pair and spell-binding functionality. Previous selections of the removed pair become Hidden without resetting their placement or other designs. EndCapper remains aesthetic-only.
+
 ## 1.4.6 — 2026-11-14
 
 - Added **Coldsnap / Combustion**, a matching frost and fire mage sister pair, bringing the collection to **32 custom designs**. Each features a floating spellbook with detailed elemental glyphs and animated frost or ember edges.

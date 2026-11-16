@@ -51,10 +51,41 @@ local function pairLabel(art,swapped)
 end
 function E.UpdateSaveButton()
     if E.panel and E.panel.save then E.panel.save:SetEnabled(not InCombatLockdown() and E.HasChanges()) end
+    local studio=E.EffectLibrary and E.EffectLibrary.window
+    if studio and studio.saveAll then studio.saveAll:SetEnabled(not InCombatLockdown() and E.HasChanges())end
 end
 local function preview(targetSide,bothModes)
     local mode=not bothModes and E.draft and E.draft.mode or nil
     E.Apply(targetSide,mode);E.UpdateSaveButton()
+end
+function E.GetEffectLibraryTarget()
+    if not E.devMode or not E.draft or not E.panel or not E.panel:IsShown() then return end
+    local c=E.draft[side]
+    if not E.artworkByID[c.art].path then return end
+    return c,side,E.draft.mode
+end
+function E.PreviewLibraryChange()
+    if E.GetEffectLibraryTarget() and not InCombatLockdown() then preview(side) end
+end
+function E.SaveEffectStudio()
+    if not E.devMode or not E.draft or InCombatLockdown() or not E.HasChanges() then return end
+    E.Commit();E.Begin();preview(nil,true);E.RefreshOptions()
+end
+function E.CancelEffectStudio()
+    if not E.devMode or not E.draft or InCombatLockdown() then return end
+    E.Cancel();E.Begin();preview(nil,true);E.RefreshOptions()
+end
+function E.DockCustomElements(studio,show)
+    local dev=E.panel and E.panel.dev;if not dev then return end
+    E.customStudio=studio;E.customStudioVisible=show
+    dev:ClearAllPoints()
+    if studio then
+        dev:SetParent(studio);dev:SetPoint("TOPLEFT",studio,"TOPLEFT",805,-48)
+        dev:SetShown(show and E.devMode==true)
+    else
+        dev:SetParent(E.panel);dev:SetPoint("TOPLEFT",E.panel,"TOPRIGHT",6,0)
+        dev:SetShown(E.devMode==true and E.panel:IsShown())
+    end
 end
 -- Dropdowns and side chevrons share the same order and selection transaction.
 local function artworkChoices(column)
@@ -126,6 +157,8 @@ function E.RefreshOptions()
     p.link:SetChecked(linked);p.swap:SetShown(linked);p.swap:SetChecked(shared.swapped)
     p.resetSide:SetText(linked and "Reset pair" or "Reset side")
     local movable=E.artworkByID[c.art].path~=nil
+    p.openEffects:SetShown(E.devMode==true)
+    p.openEffects:SetEnabled(movable and not InCombatLockdown())
     if c.art=="default" then
         p.positionNote:SetText("Move Default caps in Blizzard Edit Mode.")
     elseif movable then
@@ -257,6 +290,18 @@ function E.RefreshOptions()
         p.dev.sigil.flip:SetChecked(sigil.flip)
         p.dev:SetSize(330,487+(nativeVisible and extraRows or 0))
     else p.dev.haloTab:SetText("Halo") end
+    -- Native spell models (including baked ones) are edited in the library.
+    -- Keep this panel for custom texture elements only.
+    p.dev.native:Hide();p.dev.controls:Hide();p.dev.effectsTab:Hide();p.dev.haloTab:Hide()
+    p.dev.heading:SetText("Custom artwork: "..side)
+    p.dev.note:SetText("Native effects: Effect studio.")
+    p.dev.halo:SetShown(halo~=nil and E.devMode==true)
+    p.dev.sigil:SetShown(sigil~=nil and E.devMode==true)
+    if halo then p.dev.halo:ClearAllPoints();p.dev.halo:SetPoint("TOPLEFT",p.dev,"TOPLEFT",18,-70);p.dev:SetSize(330,440) end
+    if sigil then p.dev.sigil:ClearAllPoints();p.dev.sigil:SetPoint("TOPLEFT",p.dev,"TOPLEFT",18,-70);p.dev:SetSize(330,450) end
+    if sealVisible then p.dev.seal:ClearAllPoints();p.dev.seal:SetPoint("TOPLEFT",p.dev,"TOPLEFT",20,-75);p.dev:SetSize(330,145) end
+    if not halo and not sigil and not sealVisible then p.dev:SetSize(330,105);p.dev.note:SetText("No custom controls for this art. Use Open effects.") end
+    p.dev.effectsTab:SetText("Effects")
     local x=linked and pairOffset(E.draft) or c.x
     local limit=linked and math.min(10000,math.ceil(math.max(UIParent:GetWidth()/2,math.abs(x)))) or 200
     p.sliders.x:SetMinMaxValues(-limit,limit)
@@ -276,6 +321,8 @@ function E.RefreshOptions()
     if E.UpdateCapSelection then E.UpdateCapSelection(side) end
     refreshing = false
     E.UpdateSaveButton()
+    if E.customStudio then E.DockCustomElements(E.customStudio,E.customStudioVisible) end
+    if E.EffectLibrary and E.EffectLibrary.RefreshTarget then E.EffectLibrary.RefreshTarget() end
 end
 function E.SelectCapSide(selectedSide)
     if not E.draft or InCombatLockdown() or side==selectedSide then return end
@@ -295,6 +342,9 @@ local function makePanel()
         edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border", tile = true, tileSize = 32, edgeSize = 24,
         insets = { left = 5, right = 5, top = 5, bottom = 5 } })
     label(p, "EndCapper", 20, -20, "GameFontNormalLarge")
+    p.openEffects=button(p,"Open effects",178,-16,120,function()
+        if E.EffectLibrary then E.EffectLibrary.Open() end
+    end)
     local close = CreateFrame("Button", nil, p, "UIPanelCloseButton")
     close:SetPoint("TOPRIGHT", -3, -3)
     close:SetScript("OnClick", function() p:Hide() end)
@@ -593,6 +643,7 @@ local function makePanel()
         if not refreshing and E.draft then E.SetSealSize(E.draft[side],value); preview(side) end
     end)
     p:SetScript("OnHide", function()
+        if E.EffectLibrary and E.EffectLibrary.Close then E.EffectLibrary.Close() end
         for _,dropdown in pairs(p.artDropdowns) do dropdown:CloseMenu() end
         p.pairDropdown:CloseMenu()
         E.Cancel()

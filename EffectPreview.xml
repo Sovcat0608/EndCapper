@@ -1,0 +1,9 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+    <Actor name="EndCapperLibraryActorTemplate" virtual="true">
+        <Scripts>
+            <OnModelLoaded>
+                if self.endCapperLibraryLoaded then self.endCapperLibraryLoaded() end
+            </OnModelLoaded>
+        </Scripts>
+    </Actor>
+</Ui>
