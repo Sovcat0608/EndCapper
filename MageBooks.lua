@@ -89,10 +89,14 @@ function E.UpdateMageBooks(entry,config)
     s.enabled=true;s.animate=config.effects~=false
     local tuning=E.GetBookConfig(config)
     local bookFlip=(config.flip==true)~=tuning.flip
+    local pictureFlip=E.LayerFacing(config,"art:book",bookFlip)
+    local glowFlip=E.LayerFacing(config,"art:bookGlow",bookFlip)
     local width,height=entry.art:GetSize()
     local bookWidth=width*0.72*tuning.size/100
-    local size,coords=textureSize(entry,bookWidth);s.textureSize=size
+    local size,coords=textureSize(entry,bookWidth*E.ArtworkLayerScale(config,"art:book"));s.textureSize=size
+    local glowSize,glowCoords=textureSize(entry,bookWidth*E.ArtworkLayerScale(config,"art:bookGlow"))
     local amplitude=s.animate and E.MageBookHoverAmplitude(bookWidth) or 0
+    s.hoverAmplitude=amplitude
     local x=tuning.x*width/225*(config.flip and -1 or 1)
     local y=tuning.y*height/225-amplitude
     local level=entry.frame:GetFrameLevel()
@@ -103,7 +107,7 @@ function E.UpdateMageBooks(entry,config)
         frame:ClearAllPoints();frame:SetPoint("CENTER",entry.art,"CENTER",x,y)
     end
     for _,motion in ipairs(s.motions) do motion.legs[1]:SetOffset(0,amplitude*2);motion.legs[2]:SetOffset(0,-amplitude*2) end
-    register(s.book,s.bookHost,bookWidth,bookWidth,coords,bookFlip,prefix..name.."BookCASSize"..size..".tga")
-    for _,layer in ipairs(s.bookLayers) do register(layer.texture,s.bookGlowHost,bookWidth,bookWidth,coords,bookFlip,prefix..name.."Book"..layer.suffix.."Size"..size..".tga") end
+    register(s.book,s.bookHost,bookWidth,bookWidth,coords,pictureFlip,prefix..name.."BookCASSize"..size..".tga")
+    for _,layer in ipairs(s.bookLayers) do register(layer.texture,s.bookGlowHost,bookWidth,bookWidth,glowCoords,glowFlip,prefix..name.."Book"..layer.suffix.."Size"..glowSize..".tga") end
     E.PlayMageBooks(entry)
 end

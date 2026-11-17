@@ -27,7 +27,7 @@ function E.CreateAnimationControls(panel,state,label,muted)
     end
     input:SetScript("OnEnterPressed",function(self)
         if InCombatLockdown() then return end
-        local c=E.GetEffectLibraryTarget();local row=c and E.GetLibraryRows(c)[state.selected]
+        local c=E.GetEffectLibraryTarget();local row=not state.artSelection and c and E.GetLibraryRows(c)[state.selected]
         local id=tonumber(self:GetText())
         if row and row.addedIndex and id and id==math.floor(id) and id>=0 and id<=65535 then
             E.EditAddedEffects(c)[row.addedIndex].animation=id;E.PreviewLibraryChange()

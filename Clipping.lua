@@ -2,6 +2,7 @@ local _, E = ...
 -- Visible basal edges measured in the runtime textures, top to bottom.
 -- These are horizontal cutoffs, not masks of the full artwork silhouette.
 E.EffectBaselines = {
+    gloomfang=486/512, venomveil=493/512,
     timekeeper=700/724, timelost=700/724,
     zephyr=984/1024, skycutter=999/1024,
     banshee=506/512, highGeneral=503/512,

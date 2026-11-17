@@ -84,14 +84,17 @@ function E.UpdateSkycutter(entry,config)
         entry.skycutter=s
     end
     s.enabled=true;s.animate=config.effects~=false
-    for _,leg in ipairs(s.rotations) do leg.animation:SetDegrees(leg.degrees*(config.flip and -1 or 1)) end
+    local flip=E.LayerFacing(config,"art:boat")
+    for _,leg in ipairs(s.rotations) do leg.animation:SetDegrees(leg.degrees*(flip and -1 or 1)) end
     s.updates=s.updates+1
     local width,height=entry.art:GetSize()
-    local texture,coords,size=selectTexture(entry,width,height)
+    local scale=E.ArtworkLayerScale(config,"art:boat")
+    local texture,coords,size=selectTexture(entry,width*scale,height*scale)
     s.textureSize=size
     -- Plain TGA sampling; resizing selects a prepared image, not an animation tick.
     s.boat:SetTexture(texture)
     local amplitude=s.animate and height*0.012 or 0
+    s.hoverAmplitude=amplitude
     s.translations[1]:SetOffset(0,amplitude*2)
     s.translations[2]:SetOffset(0,-amplitude*2)
     s.host:SetFrameLevel(entry.frame:GetFrameLevel()+2)
@@ -100,7 +103,7 @@ function E.UpdateSkycutter(entry,config)
     s.host:SetPoint("CENTER",entry.art,"CENTER",0,-amplitude)
     s.boat:SetSize(width,height)
     s.boat:SetAlpha(entry.alpha)
-    s.boat:SetTexCoord(E.UV(coords,config.flip))
+    s.boat:SetTexCoord(E.UV(coords,flip))
     s.boat:ClearAllPoints()
     s.boat:SetPoint("CENTER",s.host,"CENTER",0,0)
     E.PlaySkycutter(entry)

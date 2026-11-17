@@ -236,6 +236,9 @@ function E.UpdateNativeSmoke(entry, config)
     local id = entry.libraryProfile and ("library:"..entry.libraryProfile.fileID..":"..entry.libraryProfile.animation) or
         (E.NativeEffectProfiles[config.nativeEffect] and config.nativeEffect or "coldFlame")
     local p = entry.libraryProfile or E.NativeEffectProfiles[id]
+    entry.nativeLayerID = not entry.libraryProfile and id or nil
+    local layerId=entry.addedIndex and ("fx:"..entry.addedIndex) or ("native:"..id)
+    local flipped=E.GetLayerFlip(config,layerId)
     local opacity = (config.trailOpacity or 100)/100
     local ok, result = pcall(function()
         local state = entry.nativeSmoke or create(entry)
@@ -280,6 +283,8 @@ function E.UpdateNativeSmoke(entry, config)
                 slot.scene:SetDesaturation(p.desaturation or 0)
             end
             local x, y, direction = E.EffectAnchor(slot.eye, width, height, config)
+            -- Keep the emitter registered to the same point while mirroring its view.
+            if flipped then direction=-direction end
             local artScale = (width/150)*slot.eye.scale
             local viewport = 288*artScale*(config.trailSize or 100)/100
             local pixelsPerUnit = viewport/6
@@ -319,6 +324,8 @@ function E.UpdateNativeSmoke(entry, config)
             if p.centered then biasX,biasY=0,0 end
             slot.cropVisible=E.CropNativeEffect(entry,config,slot.scene,viewport,
                 x+biasX*pixelsPerUnit,y+biasY*pixelsPerUnit,p)
+            if slot.scene.GetPoint then slot.layerAnchor={slot.scene:GetPoint(1)} end
+            slot.layerY=nil
             -- Put the inspected origin on the chosen point and camera depth plane.
             local modelScale=p.modelScale or 1
             slot.actor:SetScale(modelScale)

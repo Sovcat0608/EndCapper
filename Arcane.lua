@@ -100,6 +100,7 @@ function E.UpdateArcane(entry,config)
     s.host:ClearAllPoints()
     s.host:SetPoint("CENTER",s.art,"TOPLEFT",s.x,s.y)
     local amplitude=height*0.012
+    s.hoverAmplitude=amplitude
     s.crystal:SetPoint("CENTER",s.host,"CENTER",0,-amplitude)
     s.emission:SetPoint("CENTER",s.host,"CENTER",0,-amplitude)
     for _,t in ipairs(s.translations) do t.animation:SetOffset(0,t.direction*2*amplitude) end
@@ -110,9 +111,13 @@ function E.UpdateArcane(entry,config)
     -- 100% is the approved rc.6 size; centre and rotation stay independent.
     local sealSize=height*0.525*(config.sealSize or E.ArcaneSealSize)/100
     s.sigil:SetSize(sealSize,sealSize)
-    setArtworkTexture(s.crystal,soulbound and "SoulboundCrystal" or "ArcaneCrystal",entry,crystalWidth,crystalHeight,config.flip)
-    setArtworkTexture(s.emission,soulbound and "SoulboundCrystalEmission" or "ArcaneCrystal",entry,crystalWidth,crystalHeight,config.flip)
-    setArtworkTexture(s.sigil,"ArcaneSigil",entry,sealSize,sealSize,config.flip)
-    s.rotation:SetDegrees(config.flip and 360 or -360)
+    local crystalFlip=E.LayerFacing(config,"art:crystal")
+    local finishFlip=E.LayerFacing(config,"art:crystalFinish")
+    local crystalScale=E.ArtworkLayerScale(config,"art:crystal")
+    local finishScale=E.ArtworkLayerScale(config,"art:crystalFinish")
+    setArtworkTexture(s.crystal,soulbound and "SoulboundCrystal" or "ArcaneCrystal",entry,crystalWidth*crystalScale,crystalHeight*crystalScale,crystalFlip)
+    setArtworkTexture(s.emission,soulbound and "SoulboundCrystalEmission" or "ArcaneCrystal",entry,crystalWidth*finishScale,crystalHeight*finishScale,finishFlip)
+    setArtworkTexture(s.sigil,"ArcaneSigil",entry,sealSize*finishScale,sealSize*finishScale,finishFlip)
+    s.rotation:SetDegrees(finishFlip and 360 or -360)
     E.PlayArcane(entry)
 end

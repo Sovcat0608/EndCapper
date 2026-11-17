@@ -44,7 +44,7 @@ function E.UpdateGlyphs(entry,config)
         end
     end
     state.texture:SetTexture(E.ArtworkTexture("Interface\\AddOns\\EndCapper\\Media\\FelwingGlyphAtlas.tga"))
-    state.enabled=true; state.flip=config.flip
+    state.enabled=true; state.flip=E.LayerFacing(config,"art:glyphs")
     state.host:SetFrameLevel(entry.frame:GetFrameLevel()+3)
     state.host:SetAlpha(entry.alpha)
     local width,height=entry.art:GetSize()

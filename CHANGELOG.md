@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.9
+
+- Added **Gloomfang / Venomveil**, bringing the collection to 36 designs. Gloomfang pairs a hooded skull with a violet-poisoned dagger on the left. Venomveil pairs a poisoner’s kit with a green-poisoned dagger on the right.
+- Both daggers float on a six-second cycle and tilt 1° in each direction. As they rise, the left turns clockwise and the right turns counterclockwise. Attached effects follow the blades.
+- Effect Studio now lists artwork and effects in draw order. Move layers up or down, flip them, and attach effects to animated artwork. Adjust the size, angle, position, and opacity of individual non-base artwork layers.
+
 ## 1.4.7 — 2026-11-16
 
 - Added **Timelost / Timekeeper**, bringing the collection to **34 custom designs**. Timelost features a bronze dragon hourglass with flowing animated sand; Timekeeper features three independently rotating gears between its backdrop and foreground.

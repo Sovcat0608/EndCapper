@@ -21,7 +21,7 @@ function E.UpdateAddedEffects(entry,config)
         effect.libraryProfile={fileID=row.fileID,name=row.name,animation=row.animation,modelScale=row.scale,
             emitterX=row.originX,emitterY=row.originY,emitterZ=row.originZ,cameraAzimuth=row.azimuth,
             cameraElevation=row.elevation,desaturation=row.desaturation,centered=true,naturalEdges=true,opacity=1}
-        local c={art=config.art,flip=config.flip,effectLayer=row.effectLayer}
+        local c={art=config.art,flip=config.flip,effectLayer=row.effectLayer,layerState=config.layerState}
         for _,spec in ipairs(E.devEffectFields) do c[spec[1]]=row[spec[1]] end
         if effect.nativeWanted then effect.nativeActive=E.UpdateNativeSmoke(effect,c)
         else E.StopNativeSmoke(effect) end

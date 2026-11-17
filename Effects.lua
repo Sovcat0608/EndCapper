@@ -99,6 +99,8 @@ local function stopCustomEffects(entry)
     if E.StopGlyphs then E.StopGlyphs(entry) end
 end
 function E.StopEffects(entry)
+    if E.StopLayerMotion then E.StopLayerMotion(entry) end
+    if E.StopRogue then E.StopRogue(entry) end
     if E.StopAddedEffects then E.StopAddedEffects(entry) end
     stopCustomEffects(entry)
     if E.StopNativeSmoke then E.StopNativeSmoke(entry) end
@@ -114,6 +116,8 @@ local function stopUnusedNative(entry)
     if secondary and not secondary.nativeWanted then E.StopNativeSmoke(secondary) end
 end
 function E.PlayEffects(entry)
+    if E.PlayRogue then E.PlayRogue(entry) end
+    if E.ResumeLayerMotion then E.ResumeLayerMotion(entry) end
     if E.PlayAddedEffects then E.PlayAddedEffects(entry) end
     if E.PlayTimeworks then E.PlayTimeworks(entry) end
     if E.PlayMageBooks then E.PlayMageBooks(entry) end
@@ -134,7 +138,7 @@ function E.PlayEffects(entry)
     if entry.warlockEffect and E.PlayNativeSmoke then E.PlayNativeSmoke(entry.warlockEffect) end
     for _,effect in pairs(entry.undercityEffects or {}) do E.PlayNativeSmoke(effect) end
 end
-function E.UpdateEffects(entry, config)
+local function updateEffects(entry, config)
     -- Called only through the out-of-combat Apply path.
     if not entry.effectHooks then
         entry.frame:HookScript("OnHide", function() E.StopEffects(entry) end)
@@ -153,6 +157,7 @@ function E.UpdateEffects(entry, config)
     entry.effectsEnabled = (E.EffectProfiles[config.art] ~= nil or E.PriestArtworks[config.art]~=nil) and config.effects ~= false
     entry.nativeWanted = entry.effectsEnabled and config.nativeSmoke ~= false
     entry.nativeActive = false
+    if E.UpdateRogue then E.UpdateRogue(entry,config) end
     updateHiltEyeTrail(entry, config)
     updateWarlockShadow(entry, config)
     updateMultiEffects(entry, config)
@@ -220,4 +225,11 @@ function E.UpdateEffects(entry, config)
     end
     stopUnusedNative(entry)
     E.PlayEffects(entry)
+end
+
+function E.UpdateEffects(entry,config)
+    if E.RestoreArtworkPlacement then E.RestoreArtworkPlacement(entry) end
+    if E.StopLayerMotion then E.StopLayerMotion(entry);entry.layerMotion=nil end
+    updateEffects(entry,config)
+    if E.ApplyLayerStack then E.ApplyLayerStack(entry,config) end
 end

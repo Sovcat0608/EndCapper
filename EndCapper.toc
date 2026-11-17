@@ -3,11 +3,13 @@
 ## IconTexture: Interface\AddOns\EndCapper\Media\EcapLogo
 ## Notes: Curated action-bar artwork with independent end-cap placement and mirroring.
 ## Author: EndCapper
-## Version: 1.4.7
+## Version: 1.4.9
 ## SavedVariables: EndCapperDB
 ## OptionalDeps: Blizzard_EditMode
 
 Model.lua
+LayerStack.lua
+LayerPlacement.lua
 Layouts.lua
 Clipping.lua
 NativeSmoke.xml
@@ -17,6 +19,7 @@ Glyphs.lua
 Liquid.lua
 Arcane.lua
 Skycutter.lua
+Rogue.lua
 MageBooks.lua
 MageSigils.lua
 Timeworks.lua
@@ -34,4 +37,5 @@ EffectSegments.lua
 EffectPreview.xml
 EffectPreview.lua
 EffectControls.lua
+LayerPanel.lua
 EffectBrowser.lua

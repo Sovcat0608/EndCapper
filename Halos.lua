@@ -31,7 +31,8 @@ function E.UpdateHalo(entry,config)
         entry.halo=s
     end
     -- Keep angular phase when changing speed/direction, independent of artwork placement.
-    local direction=(config.flip and 1 or -1)*(tuning.reverse and -1 or 1)
+    local flip=E.LayerFacing(config,"art:halo")
+    local direction=(flip and 1 or -1)*(tuning.reverse and -1 or 1)
     if s.direction and s.direction~=direction then s.phase=(-s.phase)%1 end
     if s.art~=config.art then s.phase=0 end
     s.art=config.art;s.direction=direction;s.period=tuning.period;s.enabled=true
@@ -45,7 +46,7 @@ function E.UpdateHalo(entry,config)
     s.texture:SetTexture(E.ArtworkTexture(media..E.HaloArtworks[config.art]..".blp"),"CLAMP","CLAMP","TRILINEAR")
     if s.texture.SetSnapToPixelGrid then s.texture:SetSnapToPixelGrid(false) end
     if s.texture.SetTexelSnappingBias then s.texture:SetTexelSnappingBias(0) end
-    s.texture:SetSize(diameter,diameter);s.texture:SetTexCoord(E.UV(uv,config.flip))
+    s.texture:SetSize(diameter,diameter);s.texture:SetTexCoord(E.UV(uv,flip))
     s.rotation:SetDuration(s.period);s.rotation:SetDegrees(direction*360)
     E.PlayHalo(entry)
 end

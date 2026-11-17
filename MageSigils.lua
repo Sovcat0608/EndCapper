@@ -47,7 +47,8 @@ function E.PlayMageSigils(entry)
     s.startedAt=GetTime()
     local book=entry.mageBooks
     local bookTime=book.elapsed+(book.startedAt and math.max(0,GetTime()-book.startedAt) or 0)
-    s.hover:Play(false,(bookTime-1)%6)
+    s.hoverStartPhase=(bookTime-1)%6
+    s.hover:Play(false,s.hoverStartPhase)
     if s.art=="emberbound" then s.rotationGroup:Play(false,s.elapsed%s.period) end
     s.host:SetScript("OnUpdate",s.tick)
 end
@@ -75,11 +76,12 @@ function E.UpdateMageSigils(entry,config)
     E.StopMageSigils(entry)
     if s.art~=config.art then s.elapsed=0 end
     s.art=config.art;s.enabled=true;s.cycle=tuning.cycle;s.period=tuning.period
-    s.flip=(config.flip==true)~=tuning.flip
+    s.flip=E.LayerFacing(config,"art:sigil",(config.flip==true)~=tuning.flip)
     local width,height=entry.art:GetSize()
     local book=E.GetBookConfig(config)
     local bookWidth=width*.72*book.size/100
     local amplitude=bookWidth*.012
+    s.hoverAmplitude=amplitude
     local size=bookWidth*.65*tuning.size/100
     s.host:SetSize(size,size);s.host:SetFrameLevel(entry.frame:GetFrameLevel()+6)
     -- Same registered center/amplitude as the book, independent native motion.

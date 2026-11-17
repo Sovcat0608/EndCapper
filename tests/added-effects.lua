@@ -72,6 +72,15 @@ local axes=a.scene.SetCameraOrientationByAxisVectorsValue
 for j=0,2 do local n=0;for k=1,3 do n=n+axes[j*3+k]^2 end;assert(math.abs(n-1)<.00001)end
 for j=0,1 do for k=j+1,2 do local n=0;for d=1,3 do n=n+axes[j*3+d]*axes[k*3+d]end;assert(math.abs(n)<.00001)end end
 local calls=a.actor.modelCalls
+local normalCamera=a.scene.SetCameraPositionValue
+local anchor=a.scene.point
+c.layerState={timekeeper={flips={["fx:1"]=true}}}
+E.UpdateEffects(left,c)
+local mirroredCamera=a.scene.SetCameraPositionValue
+assert(mirroredCamera[1]==-normalCamera[1] and mirroredCamera[2]==-normalCamera[2])
+assert(a.scene.point[4]==anchor[4] and a.scene.point[5]==anchor[5])
+assert(a.actor.modelCalls==calls and a.actor.animationCalls==1)
+c.layerState=nil
 E.GetAddedEffects(c)[1].trailY=55;E.GetAddedEffects(c)[1].effectLayer='back';E.UpdateEffects(left,c)
 assert(a.actor.modelCalls==calls and a.scene.SetFrameLevelValue[1]==11 and a.scene.height==a.scene.width)
 E.Commit();assert(#E.GetAddedEffects(EndCapperDB.left)==2);E.Begin();assert(not E.HasChanges())

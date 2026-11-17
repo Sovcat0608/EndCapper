@@ -2,7 +2,7 @@ local _, E = ...
 E.EffectLibrary=E.EffectLibrary or {}
 local Viewer=E.EffectLibrary
 local ROWS, ROW_HEIGHT = 12, 28
-local PANEL_WIDTH, PANEL_HEIGHT = 1150, 700
+local PANEL_WIDTH, PANEL_HEIGHT = 1390, 700
 local gold = { 0.96, 0.78, 0.43 }
 local muted = { 0.62, 0.68, 0.74 }
 local white = { 0.90, 0.92, 0.95 }
@@ -101,7 +101,7 @@ local function createWindow()
 
     local stage = CreateFrame("Frame", nil, panel)
     stage:SetPoint("TOPLEFT", 325, -105)
-    stage:SetPoint("BOTTOMRIGHT", -327, 190)
+    stage:SetPoint("BOTTOMRIGHT", -567, 190)
     local background = fill(stage, "BACKGROUND", 0.11, 0.13, 0.17)
     stage:EnableMouseWheel(true)
     local status = label(panel, "GameFontHighlightSmall", muted)
@@ -155,12 +155,14 @@ local function createWindow()
     copy:SetScript("OnClick", function() id:SetFocus(); id:HighlightText() end)
 
     local added=E.CreateLibraryControls(panel,button,label,title,gold,muted)
+    local stack=E.CreateStudioLayerPanel and E.CreateStudioLayerPanel(panel,added,button,label,gold,muted)
     local custom=button(panel,"Custom artwork",145);custom:SetPoint("TOPLEFT",785,-11);panel.custom=custom
-    custom:SetScript("OnClick",function()
-        panel.customArt=not panel.customArt;added.host:SetShown(not panel.customArt)
+    panel.SetCustomArtwork=function(shown)
+        panel.customArt=shown;added.host:SetShown(not shown)
         custom:SetText(panel.customArt and "Game effects" or "Custom artwork")
         if E.DockCustomElements then E.DockCustomElements(panel,panel.customArt) end
-    end)
+    end
+    custom:SetScript("OnClick",function() panel.SetCustomArtwork(not panel.customArt) end)
     local add=button(panel,"Add effect",220)
     add:SetPoint("BOTTOMLEFT",600,44);panel.add=add
     add:SetEnabled(false)
@@ -172,7 +174,7 @@ local function createWindow()
             azimuth=preview.angle,elevation=preview.elevation,desaturation=selected.preset and selected.preset.desaturation or 0})
         if index then
             panel.customArt=false;custom:SetText("Custom artwork")
-            local _,builtins=E.GetLibraryRows(c);added.selected=index+builtins
+            local _,builtins=E.GetLibraryRows(c);added.selected=index+builtins;added.artSelection=nil
             E.PreviewLibraryChange();panel.RefreshTarget()
         end
     end
@@ -181,6 +183,7 @@ local function createWindow()
         local c=E.GetEffectLibraryTarget()
         if not c then panel:Hide();return end
         added.Refresh()
+        if stack then stack.Refresh() end
         added.host:SetShown(not panel.customArt)
         if E.DockCustomElements then E.DockCustomElements(panel,panel.customArt) end
         if panel.saveAll then panel.saveAll:SetEnabled(not InCombatLockdown() and E.HasChanges()) end

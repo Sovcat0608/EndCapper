@@ -41,6 +41,7 @@ function E.UpdateMoonwell(entry,config)
     local w,h=entry.art:GetSize()
     s.host:SetFrameLevel(entry.frame:GetFrameLevel()+3);s.host:SetAlpha(entry.alpha);s.host:SetSize(w,h)
     s.host:ClearAllPoints();s.host:SetPoint("CENTER",entry.art,"CENTER",0,0)
-    for _,layer in ipairs(s.layers) do layer.texture:SetTexture(E.ArtworkTexture(media..layer.kind..".tga"));layer.texture:SetSize(w,h);layer.texture:SetTexCoord(E.UV(uv,config.flip));layer.texture:Show() end
+    local flip=E.LayerFacing(config,"art:moonwell")
+    for _,layer in ipairs(s.layers) do layer.texture:SetTexture(E.ArtworkTexture(media..layer.kind..".tga"));layer.texture:SetSize(w,h);layer.texture:SetTexCoord(E.UV(uv,flip));layer.texture:Show() end
     E.PlayMoonwell(entry)
 end

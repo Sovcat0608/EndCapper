@@ -49,7 +49,7 @@ function E.UpdateLiquid(entry,config)
         state.texture:SetTexture(path,"CLAMP","CLAMP","LINEAR")
         state.path=path;state.art=config.art;state.index=nil
     end
-    state.enabled=true;state.flip=config.flip
+    state.enabled=true;state.flip=E.LayerFacing(config,"art:liquid")
     state.host:SetFrameLevel(entry.frame:GetFrameLevel()+3)
     state.host:SetAlpha(entry.alpha)
     local width,height=entry.art:GetSize()

@@ -53,7 +53,7 @@ function E.UpdateFrost(entry,config)
         layer.enabled=layer.kind~="Eyes" or config.art=="rimeguard"
         if layer.enabled then
             layer.texture:SetTexture(E.ArtworkTexture(media..name..layer.suffix..".tga"))
-            layer.texture:SetSize(width,height);layer.texture:SetTexCoord(E.UV(uv,config.flip));layer.texture:Show()
+            layer.texture:SetSize(width,height);layer.texture:SetTexCoord(E.UV(uv,E.LayerFacing(config,"art:frost")));layer.texture:Show()
         else layer.group:Stop();layer.texture:Hide() end
     end
     E.PlayFrost(entry)

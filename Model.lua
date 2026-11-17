@@ -1,5 +1,5 @@
 local _, E = ...
-E.schemaVersion = 47
+E.schemaVersion = 49
 -- Approved multi-art bake from applied 2026-11-10 save; see docs/rebake-rc14.md.
 E.UndeadArtworks={skull=true,lordaeron=true}
 E.WorgenArtworks={wolf=true,whiteWorgen=true}
@@ -329,8 +329,12 @@ function E.SelectedEffect(config)
     return (E.EffectProfiles[config.art] or E.SkullEffect).nativeEffect
 end
 E.TimeArtworks={timekeeper=true,timelost=true}
+E.RogueArtworks={gloomfang="Gloomfang",venomveil="Venomveil"}
+E.RogueDaggerSize=110
 E.MageArtworks={frostbound="Frostbound",emberbound="Emberbound"}
 E.artworks = {
+    { id="gloomfang", name="Gloomfang", path="Interface\\AddOns\\EndCapper\\Media\\Gloomfang.tga", width=225, height=150, uv={0,0,0,1,.75,0,.75,1} },
+    { id="venomveil", name="Venomveil", path="Interface\\AddOns\\EndCapper\\Media\\Venomveil.tga", width=225, height=150, uv={0,0,0,1,.75,0,.75,1} },
     { id = "timekeeper", name = "Timelost", path = "Interface\\AddOns\\EndCapper\\Media\\Timekeeper.tga", width=225, height=150 },
     { id = "timelost", name = "Timekeeper", path = "Interface\\AddOns\\EndCapper\\Media\\Timelost.tga", width=225, height=150 },
     { id = "frostbound", name = "Coldsnap", path = "Interface\\AddOns\\EndCapper\\Media\\FrostboundBookCASSize887.tga", floatingOnly=true, width=225, height=225 },
@@ -371,7 +375,7 @@ E.artworks = {
 E.artworkByID = {}
 for _, artwork in ipairs(E.artworks) do E.artworkByID[artwork.id] = artwork end
 -- Chooser rows are also the authoritative sister relationships.
-E.ArtworkPairs={{"timekeeper","timelost"},{"skull","lordaeron"},{"wolf","whiteWorgen"},{"moonbough","lunarRelic"},
+E.ArtworkPairs={{"gloomfang","venomveil"},{"timekeeper","timelost"},{"skull","lordaeron"},{"wolf","whiteWorgen"},{"moonbough","lunarRelic"},
     {"frostbound","emberbound"},
     {"zephyr","skycutter"},
     {"banshee","highGeneral"},
@@ -387,6 +391,7 @@ end
 -- Saved flip remains the actual texture/effect mirror state for compatibility.
 -- The UI checkbox reverses this artwork's default facing on the selected side.
 function E.DefaultMirror(art, side)
+    if E.RogueArtworks[art] then return side==(art=="gloomfang" and "right" or "left") end
     if E.TimeArtworks[art] then return side==(art=="timekeeper" and "left" or "right") end
     if E.MageArtworks[art] then return side==(art=="frostbound" and "right" or "left") end
     if E.ZephrasEffects[art] then return side==(art=="zephyr" and "left" or "right") end
@@ -636,6 +641,24 @@ function E.SetEffectLayer(config, layer)
 end
 -- Approved End Cap bake, 2026-11-14 17:31:55 UTC. Stable IDs retain artwork identity.
 E.AddedEffectDefaults={
+    -- Rogue pair, saved End Cap bake for 1.4.8.
+    gloomfang={
+        {fileID=1715659,name="7fx argus void precast",animation=158,scale=2.192992344428562,originX=0,originY=0,originZ=4.76837158203125e-7,azimuth=0,elevation=0,desaturation=0,trailSize=100,trailAngle=90,trailX=16,trailY=-43,trailOpacity=2,effectLayer="front"},
+        {fileID=165993,name="Blackglow low",animation=0,scale=3.378122019490529,originX=0.00670972466468811,originY=-0.006400942802429199,originZ=0.01276364922523499,azimuth=0,elevation=0,desaturation=0,trailSize=112,trailAngle=90,trailX=32,trailY=-15,trailOpacity=42,effectLayer="front"},
+        {fileID=5593597,name="Classic fx weaponglow purple high",animation=0,scale=1.356840404593811,originX=0.0693202018737793,originY=0.01111897826194763,originZ=-0.02025631070137024,azimuth=0,elevation=0,desaturation=0,trailSize=50,trailAngle=180,trailX=38,trailY=10,trailOpacity=14,effectLayer="front"},
+        {fileID=5593597,name="Classic fx weaponglow purple high",animation=0,scale=1.356840404593811,originX=0.0693202018737793,originY=0.01111897826194763,originZ=-0.02025631070137024,azimuth=0,elevation=0,desaturation=0,trailSize=50,trailAngle=180,trailX=14,trailY=9,trailOpacity=4,effectLayer="front"},
+        {fileID=5593597,name="Classic fx weaponglow purple high",animation=0,scale=1.356840404593811,originX=0.0693202018737793,originY=0.01111897826194763,originZ=-0.02025631070137024,azimuth=0,elevation=0,desaturation=0,trailSize=100,trailAngle=62,trailX=-45,trailY=0,trailOpacity=1,effectLayer="front"},
+        {fileID=327203,name="Acid ground cloud purple",animation=158,scale=0.2411632661162548,originX=-0.03453874588012695,originY=0.1831595897674561,originZ=0.6366491317749023,azimuth=0,elevation=0,desaturation=0,trailSize=89,trailAngle=60,trailX=-45,trailY=-9,trailOpacity=36,effectLayer="front"},
+        {fileID=165545,name="Acidburn small purple",animation=0,scale=0.277530425558157,originX=0.1598529815673828,originY=-0.07068502902984619,originZ=2.049411296844482,azimuth=0,elevation=0,desaturation=0,trailSize=50,trailAngle=90,trailX=-89,trailY=-20,trailOpacity=48,effectLayer="front"},
+    },
+    venomveil={
+        {fileID=5593597,name="Classic fx weaponglow purple high",animation=0,scale=1.356840404593811,originX=0.0693202018737793,originY=0.01111897826194763,originZ=-0.02025631070137024,azimuth=0,elevation=0,desaturation=0,trailSize=51,trailAngle=180,trailX=-30,trailY=-25,trailOpacity=29,effectLayer="front"},
+        {fileID=166007,name="Fel Green Dripping",animation=0,scale=1,originX=0,originY=0,originZ=0,azimuth=0,elevation=0,desaturation=0,trailSize=60,trailAngle=90,trailX=82,trailY=-22,trailOpacity=40,effectLayer="front"},
+        {fileID=1710514,name="7fx felwisps long state",animation=158,scale=0.126965152734036,originX=0.5115839242935181,originY=1.381377458572388,originZ=9.775281377136707,azimuth=0,elevation=0,desaturation=0,trailSize=100,trailAngle=-150,trailX=44,trailY=7,trailOpacity=10,effectLayer="front"},
+        {fileID=166003,name="Fel Flame",animation=0,scale=1,originX=-0.1388888955,originY=0,originZ=0,azimuth=0,elevation=0,desaturation=0,trailSize=78,trailAngle=180,trailX=-48,trailY=-37,trailOpacity=29,effectLayer="front"},
+        {fileID=5593590,name="Classic fx weaponglow green high",animation=0,scale=1.356840404593811,originX=0.0693202018737793,originY=0.01111897826194763,originZ=-0.02025631070137024,azimuth=0,elevation=0,desaturation=0,trailSize=50,trailAngle=90,trailX=-49,trailY=-34,trailOpacity=1,effectLayer="front"},
+        {fileID=165993,name="Blackglow low",animation=0,scale=3.378122019490529,originX=0.00670972466468811,originY=-0.006400942802429199,originZ=0.01276364922523499,azimuth=0,elevation=0,desaturation=0,trailSize=100,trailAngle=90,trailX=-15,trailY=-28,trailOpacity=42,effectLayer="front"},
+    },
 timekeeper={
 {trailY=25,desaturation=0,originX=8.938457489013672,animation=0,scale=0.0101454940884725,trailOpacity=100,trailX=-5,originZ=35.36475467681885,originY=-11.97270965576172,trailSize=90,name="7fx argus vol sparkles",elevation=0,azimuth=0,trailAngle=-63,effectLayer="front",fileID=1688083},
 {trailY=-63,desaturation=0,originX=-0.0436069518327713,animation=0,scale=1.4266095574416,trailOpacity=2,trailX=-15,originZ=-0.1613864898681641,originY=-0.004696518182754517,trailSize=100,name="8fx priestessalunza holy precast hand",elevation=0,azimuth=0,trailAngle=90,effectLayer="front",fileID=1847687},
@@ -702,10 +725,14 @@ end
 function E.RemoveLibraryEffect(config,index)
     if not E.devMode then return end
     local rows=E.EditAddedEffects(config)
-    if type(index)=="number" and index>=1 and index<=#rows then table.remove(rows,index) end
+    if type(index)=="number" and index==math.floor(index) and index>=1 and index<=#rows then
+        if E.RemoveStudioLayerIndex then E.RemoveStudioLayerIndex(config,index) end
+        table.remove(rows,index)
+    end
 end
 function E.NormalizeSide(value, side)
     value = type(value) == "table" and value or {}
+    local addedEffects=E.NormalizeAddedEffects(value.addedEffects)
     local art = value.art
     if art=="arcaneTome" or art=="arcaneScroll" then art="hidden" end
     if not E.artworkByID[art] then art = "skull" end
@@ -757,12 +784,32 @@ function E.NormalizeSide(value, side)
         frameX=type(value.frameX)=="number" and number(value.frameX,0,-10000,10000) or nil,
         frameY=type(value.frameY)=="number" and number(value.frameY,0,-10000,10000) or nil,
         effects = true, nativeSmoke = true, devEffects=devEffects, effectLayers=effectLayers,halos=halos,books=books,sigils=sigils,
-        addedEffects=E.NormalizeAddedEffects(value.addedEffects) })
+        addedEffects=addedEffects,layerState=E.NormalizeLayerState and E.NormalizeLayerState(value.layerState,addedEffects) })
 end
 local function normalizeMode(value,mode,version,skipProfiles)
     local enabled=value.enabled
     if type(enabled)~="boolean" then enabled=mode=="end" end
     local result={mode=mode,enabled=enabled,left=E.NormalizeSide(value.left,"left"),right=E.NormalizeSide(value.right,"right")}
+    -- The original floating knives had a different painted pose. Only retire
+    -- the two known old calibrations. Effect flips, links and tuning are independent.
+    if type(version)=="number" and version<49 then
+        for _,side in ipairs({"left","right"}) do
+            local state=result[side].layerState or {}
+            for art in pairs(E.RogueArtworks) do
+                local layers=state[art]
+                local pose=layers and layers.placement and layers.placement["art:dagger"]
+                local sign=art=="gloomfang" and 1 or -1
+                if layers and layers.flips and layers.flips["art:base"] and pose and
+                    pose.trailX==69*sign and pose.trailY==-5 and pose.trailSize==120 and pose.trailAngle==-10*sign then
+                    layers.flips["art:base"]=nil
+                    layers.placement["art:dagger"]=pose.trailOpacity and {trailOpacity=pose.trailOpacity} or nil
+                    if not next(layers.flips) then layers.flips=nil end
+                    if not next(layers.placement) then layers.placement=nil end
+                    if not next(layers) then state[art]=nil end
+                end
+            end
+        end
+    end
     if mode=="corner" then
         for _,side in ipairs({"left","right"}) do
             if result[side].art=="default" then result[side].art="hidden" end
@@ -1003,6 +1050,22 @@ function E.SnapToCorner(db,side)
         db[side].x=0;db[side].frameX=nil
     end
 end
+function E.GetLayerFlip(config,id)
+    local state=config.layerState and config.layerState[config.art]
+    return state and state.flips and state.flips[id]==true or false
+end
+
+function E.ArtworkLayerScale(config,id,defaultSize)
+    local state=config.layerState and config.layerState[config.art]
+    local tuning=state and state.placement and state.placement[id]
+    return (tuning and tuning.trailSize or defaultSize or 100)/100
+end
+
+function E.LayerFacing(config,id,inherited)
+    if inherited==nil then inherited=config.flip end
+    return (inherited==true)~=E.GetLayerFlip(config,id)
+end
+
 function E.UV(coords, flip)
     if not flip then return unpack(coords) end
     return coords[5], coords[6], coords[7], coords[8], coords[1], coords[2], coords[3], coords[4]
@@ -1049,6 +1112,7 @@ local function editableSettings(db,includeEffects)
             settings.effects[art]=tuning
         end end
         if includeEffects then
+            settings.layerState=c.layerState
             settings.addedEffects={}
             local arts={};for art in pairs(E.AddedEffectDefaults) do arts[art]=true end
             for art in pairs(c.addedEffects or {}) do arts[art]=true end

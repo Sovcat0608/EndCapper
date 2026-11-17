@@ -1,8 +1,8 @@
 # EndCapper
 
-**Version 1.4.7 for World of Warcraft: Forever.**
+**Version 1.4.9 for World of Warcraft: Forever.**
 
-Decorate your action bars and screen corners with 34 fantasy designs. Mix and match artwork or link matching pairs, then adjust placement, size and mirroring from EndCapper’s own panel.
+Decorate your action bars and screen corners with 36 fantasy designs. Mix and match artwork or link matching pairs, then adjust placement, size and mirroring from EndCapper’s own panel.
 
 EndCapper is aesthetic only: effects do not react to spells, buffs or procs. The developer effect library adds and adjusts ambient visual layers.
 
@@ -37,6 +37,8 @@ Animated effects stop at the artwork's bottom edge. This cutoff follows artwork 
 
 | Design | Effects |
 | --- | --- |
+| Gloomfang | Hooded, violet-eyed skull and a floating purple-poison dagger |
+| Venomveil | Leather knife case and lockpicks, glowing green and violet potions, and a floating green-poison dagger |
 | Timelost | Bronze dragon hourglass with flowing animated sand |
 | Timekeeper | Fractured bronze clock with three independently turning gears behind its face and ribbon |
 | Coldsnap | Floating frost spellbook, animated eye sigil, Frost Particles, Blue Glow and Frostbolt Precast |

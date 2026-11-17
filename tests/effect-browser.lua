@@ -1,6 +1,6 @@
 local E={}
 assert(loadfile('Model.lua'))('EndCapper',E)
-for _,f in ipairs({'EffectCatalog.lua','EffectLibrary.lua','EffectPreview.lua','EffectAnimations.lua','EffectSegments.lua','EffectControls.lua','EffectBrowser.lua'}) do assert(loadfile(f))('EndCapper',E)end
+for _,f in ipairs({'LayerStack.lua','EffectCatalog.lua','EffectLibrary.lua','EffectPreview.lua','EffectAnimations.lua','EffectSegments.lua','EffectControls.lua','LayerPanel.lua','EffectBrowser.lua'}) do assert(loadfile(f))('EndCapper',E)end
 local Viewer=E.EffectLibrary
 unpack, tinsert = table.unpack, table.insert
 local all = Viewer.Search("")
@@ -97,6 +97,16 @@ end
 
 function CreateFrame(kind, name,parent,template)
     local frame = object(kind, name)
+    if kind == "DropdownButton" then
+        function frame:SetupMenu(build) self.buildMenu=build end
+        function frame:GenerateMenu()
+            local radios={}
+            self.buildMenu(self,{CreateRadio=function(_,label,checked,choose,key)
+                radios[#radios+1]={label=label,checked=checked,choose=choose,key=key}
+            end})
+            self.radios=radios
+        end
+    end
     if kind == "ModelScene" then return modelScene(frame) end
     if template=="MinimalSliderWithSteppersTemplate" then
         frame.Slider=object("Slider")
@@ -197,3 +207,56 @@ assert(not animation.enabled and E.GetAddedEffects(E.draft.left)[1].animation==1
 combat=false;panel:emit('OnEvent');panel.custom:emit('OnClick');assert(panel.customArt and not controls.host:IsShown())
 panel.custom:emit('OnClick');assert(not panel.customArt and controls.host:IsShown())
 print('PASS: binding UI absent, aesthetic animation selection persists, Save/Cancel/combat guards and custom-art navigation retained')
+
+E.Cancel()
+EndCapperDB=E.Normalize({left={art="venomveil",addedEffects={venomveil={}}},right={art="gloomfang"}})
+E.Begin();side="left";panel.RefreshTarget()
+local stack=panel.layerStack
+assert(stack.rows[1].item.id=="art:dagger" and stack.rows[2].item.id=="art:base")
+assert(controls.artSelection=="art:dagger" and controls.sliders.trailAngle.control.enabled)
+controls.sliders.trailAngle:SetValue(43)
+assert(E.GetArtworkPlacement(E.draft.left,stack.rows[1].item).trailAngle==43 and E.HasChanges())
+stack.rows[2]:emit("OnClick")
+assert(not controls.sliders.trailSize.control.enabled and not controls.reset.enabled)
+E.Commit();E.Begin();panel.RefreshTarget()
+assert(not E.HasChanges() and E.GetArtworkPlacement(E.draft.left,stack.rows[1].item).trailAngle==43)
+local oldStack=E.NormalizeSide({art="venomveil",addedEffects={venomveil={}},layerState={venomveil={
+    order={"art:flaskShadow","art:flasks","art:dagger","art:base"},
+    flips={["art:flasks"]=true},placement={["art:greenPoison"]={trailOpacity=25}},
+}}},"left")
+local ordered=E.GetLayerStack(oldStack)
+assert(#ordered==2 and ordered[1].id=="art:dagger" and ordered[2].id=="art:base")
+assert(not oldStack.layerState.venomveil.flips and not oldStack.layerState.venomveil.placement)
+panel.add:emit("OnClick");panel.add:emit("OnClick")
+assert(stack.rows[1].item.id=="fx:2" and stack.follow:IsShown())
+assert(stack.flip.enabled and not stack.flip:GetChecked())
+stack.flip:SetChecked(true);stack.flip:emit("OnClick")
+assert(E.GetLayerFlip(E.draft.left,"fx:2") and not E.GetLayerFlip(E.draft.left,"fx:1"))
+assert(#stack.follow.radios==2 and stack.follow.radios[2].key=="art:dagger")
+stack.follow.radios[2].choose(stack.follow.radios[2].key)
+assert(E.GetLayerMotion(E.draft.left,"fx:2")=="art:dagger")
+stack.down:emit("OnClick");stack.down:emit("OnClick")
+assert(stack.rows[1].item.id=="fx:1" and stack.rows[2].item.id=="art:dagger" and stack.rows[3].item.id=="fx:2")
+stack.rows[4]:emit("OnClick")
+assert(controls.artSelection=="art:base" and not controls.remove.enabled)
+stack.flip:SetChecked(true);stack.flip:emit("OnClick")
+assert(E.GetLayerFlip(E.draft.left,"art:base") and not E.GetLayerFlip(E.draft.left,"art:dagger"))
+stack.up:emit("OnClick")
+assert(stack.rows[3].item.id=="art:base")
+stack.rows[1]:emit("OnClick")
+controls.remove:emit("OnClick")
+assert(E.GetLayerMotion(E.draft.left,"fx:1")=="art:dagger")
+E.Commit();E.Begin();panel.RefreshTarget()
+assert(not E.HasChanges() and stack.rows[1].item.id=="art:dagger")
+assert(E.GetLayerMotion(EndCapperDB.left,"fx:1")=="art:dagger" and not E.GetLayerMotion(EndCapperDB.right,"fx:1"))
+assert(E.GetLayerFlip(EndCapperDB.left,"fx:1") and E.GetLayerFlip(EndCapperDB.left,"art:base"))
+stack.rows[2]:emit("OnClick")
+assert(stack.flip:GetChecked())
+stack.flip:SetChecked(false);stack.flip:emit("OnClick")
+assert(not E.GetLayerFlip(E.draft.left,"art:base") and E.HasChanges())
+E.Cancel();E.Begin();panel.RefreshTarget()
+assert(E.GetLayerFlip(E.draft.left,"art:base") and not E.HasChanges())
+combat=true;panel:emit("OnEvent")
+assert(not stack.up.enabled and not stack.down.enabled and not stack.flip.enabled)
+combat=false
+print("PASS: real layer panel draw order, artwork selection, hover dropdown, duplicate effect removal, reload, and combat guards")

@@ -316,7 +316,8 @@ local function renderCap(entry,db)
     if entry.owned then
         local width,height=artwork.width,artwork.height
         if artwork.floatingOnly then art:SetTexture(nil) else art:SetTexture(artwork.path) end
-        art:SetTexCoord(E.UV({0,0,0,1,1,0,1,1},flip))
+        local baseFlip=E.LayerFacing(c,"art:base",flip)
+        art:SetTexCoord(E.UV(artwork.uv or {0,0,0,1,1,0,1,1},baseFlip))
         art:SetSize(width*c.size/100,height*c.size/100)
         local frameWidth,frameHeight,centerX,centerY=E.GetCapGeometry(c,flip)
         entry.frame:SetSize(frameWidth,frameHeight)
@@ -332,17 +333,18 @@ local function renderCap(entry,db)
         art:SetPoint("CENTER", entry.frame, "CENTER", c.x-centerX, offsetY-centerY)
         art:Show()
         if artwork.overlay then
-            -- Static foreground artwork shares the base plane, above its
-            -- texture but below front native effects. It is not an effect.
             local overlay=entry.artOverlay
             if not overlay then
-                overlay=entry.artLayer:CreateTexture(nil,"OVERLAY",nil,7)
+                entry.overlayLayer=CreateFrame("Frame",nil,entry.frame)
+                entry.overlayLayer:EnableMouse(false)
+                overlay=entry.overlayLayer:CreateTexture(nil,"OVERLAY",nil,7)
                 entry.artOverlay=overlay
                 overlay:SetBlendMode("BLEND")
             end
+            entry.overlayLayer:SetFrameLevel(entry.frame:GetFrameLevel()+2)
             overlay:SetTexture(artwork.overlay)
             overlay:SetSize(width*c.size/100,height*c.size/100)
-            overlay:SetTexCoord(E.UV({0,0,0,1,1,0,1,1},flip))
+            overlay:SetTexCoord(E.UV({0,0,0,1,1,0,1,1},E.LayerFacing(c,"art:overlay",flip)))
             overlay:SetAlpha(entry.alpha)
             overlay:ClearAllPoints()
             overlay:SetPoint("CENTER",art,"CENTER",0,0)

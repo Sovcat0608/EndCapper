@@ -7,7 +7,7 @@ former.behavior='bound';former.binding={kind='cast',spell='Arcane Blast',intro=t
 former.animation=158;former.trailX=37;former.trailOpacity=42
 local saved={version=45,left={art='timekeeper',x=21,size=133,addedEffects={timekeeper={former}}},right={art='timelost'}}
 local db=E.Normalize(saved)
-assert(db.version==47 and db.left.x==21 and db.left.size==133)
+assert(db.version==49 and db.left.x==21 and db.left.size==133)
 local row=E.GetAddedEffects(db.left)[1]
 assert(not row.behavior and not row.binding and row.animation==158 and row.trailX==37 and row.trailOpacity==42)
 assert(#E.GetAddedEffects(db.right)==4 and #E.GetAddedEffects(E.NormalizeSide({art='timekeeper'},'left'))==4)

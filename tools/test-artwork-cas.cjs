@@ -1,10 +1,10 @@
 const assert=require('node:assert/strict'),fs=require('node:fs');
 const {files,read,outputName,convert}=require('./Build-ArtworkCAS.cjs');
 assert.equal(new Set(files).size,files.length);
-// Every base and separate ice overlay in the artwork registry has a CAS pair.
+// Every static base and separate ice overlay in the registry ships unsharpened.
 const registry=fs.readFileSync('Model.lua','utf8').split('\n').filter(line=>!line.includes('floatingOnly=true')).join('\n');
 const paths=[...registry.matchAll(/(?:path|overlay)\s*=\s*"Interface\\\\AddOns\\\\EndCapper\\\\Media\\\\([^"\r\n]+)"/g)].map(m=>'Media/'+m[1]);
-assert.equal(paths.length,34,'32 static bases plus two ice overlays; two floating-only books checked separately');
+assert.equal(paths.length,36,'34 static bases plus two ice overlays; two floating-only books checked separately');
 const baselines=require('./baseline-artwork.json');
 assert.deepEqual([...baselines].sort(),[...paths].sort(),'Package baseline manifest matches static registry');
 const pkgmeta=fs.readFileSync('.pkgmeta','utf8').split(/\r?\n/);

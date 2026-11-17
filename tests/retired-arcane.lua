@@ -1,7 +1,7 @@
 local E={}
 assert(loadfile('Model.lua'))('EndCapper',E)
 assert(not E.artworkByID.arcaneTome and not E.artworkByID.arcaneScroll)
-assert(not E.PairByArt.arcaneTome and not E.PairByArt.arcaneScroll and #E.artworks==36)
+assert(not E.PairByArt.arcaneTome and not E.PairByArt.arcaneScroll and #E.artworks==38)
 assert(not E.ArcaneArtworks and not E.GetEmissionConfig and not E.SetEmission)
 local function side(art)
     return {art=art,size=127,x=19,y=-12,frameX=345,frameY=76,flip=true,
@@ -16,7 +16,7 @@ local source={version=46,mode='end',left=side('arcaneTome'),right=side('arcaneSc
         mixed={left=side('arcaneScroll'),right=side('frostbound'),pair={linked=false}}},
     otherMode={left=side('arcaneScroll'),right=side('emberbound'),pair={linked=false}}}
 local db=E.Normalize(source)
-assert(db.version==47 and db.left.art=='hidden' and db.right.art=='hidden' and db.pair.art=='hidden')
+assert(db.version==49 and db.left.art=='hidden' and db.right.art=='hidden' and db.pair.art=='hidden')
 assert(db.pair.separation==680 and db.pair.x==17 and db.pair.size==127)
 assert(db.otherMode.left.art=='hidden' and db.otherMode.right.art=='emberbound')
 assert(db.otherMode.left.x==19 and db.otherMode.left.y==-12 and db.otherMode.left.frameX==345)

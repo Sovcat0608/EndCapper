@@ -209,6 +209,7 @@ mirrorSide.banshee='right';mirrorSide.highGeneral='left'
 mirrorSide.zephyr='left';mirrorSide.skycutter='right'
 mirrorSide.frostbound='right';mirrorSide.emberbound='left'
 mirrorSide.timekeeper='left';mirrorSide.timelost='right'
+mirrorSide.gloomfang='right';mirrorSide.venomveil='left'
 
 EndCapperDB=E.Normalize(nil)
 for _,side in ipairs({'left','right'}) do
@@ -469,7 +470,7 @@ end
 p.link:Click()
 assert(p.pairDropdown:IsShown() and not p.artDropdowns.left:IsShown() and not p.artDropdowns.right:IsShown())
 p.pairDropdown:GenerateMenu()
-assert(#p.pairDropdown.menuDescription.items==20 and p.pairDropdown.menuDescription.scrollHeight==280)
+assert(#p.pairDropdown.menuDescription.items==21 and p.pairDropdown.menuDescription.scrollHeight==280)
 for _,row in ipairs(E.ArtworkPairs) do
  choose(row[1])
  local left,right=row[1],row[2] or row[1]

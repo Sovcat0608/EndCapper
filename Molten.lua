@@ -50,7 +50,7 @@ function E.UpdateMolten(entry,config)
     s.host:ClearAllPoints(); s.host:SetPoint("CENTER",entry.art,"CENTER",0,0)
     for _,layer in ipairs(s.layers) do
         layer.texture:SetTexture(E.ArtworkTexture(media..name..layer.suffix..".tga"))
-        layer.texture:SetSize(width,height); layer.texture:SetTexCoord(E.UV(uv,config.flip))
+        layer.texture:SetSize(width,height); layer.texture:SetTexCoord(E.UV(uv,E.LayerFacing(config,"art:molten")))
     end
     E.PlayMolten(entry)
 end

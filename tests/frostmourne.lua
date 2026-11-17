@@ -1,7 +1,7 @@
 local E={}
 assert(loadfile('Model.lua'))('EndCapper',E)
 assert(loadfile('Clipping.lua'))('EndCapper',E)
-assert(E.schemaVersion==47 and #E.artworks==36)
+assert(E.schemaVersion==49 and #E.artworks==38)
 assert(E.PairByArt.frostmourneHilt==E.PairByArt.frostmourneBlade)
 E.devMode=true
 for _,side in ipairs({'left','right'}) do

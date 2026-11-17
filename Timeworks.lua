@@ -79,7 +79,9 @@ function E.UpdateTimeworks(entry,config)
     end
     E.StopTimeworks(entry)
     if s.art~=config.art then s.elapsed=0 end
-    s.art=config.art;s.enabled=true;s.animate=config.effects~=false;s.flip=config.flip==true
+    s.art=config.art;s.enabled=true;s.animate=config.effects~=false
+    s.flip=E.LayerFacing(config,"art:timeMiddle")
+    local glowFlip=E.LayerFacing(config,"art:timeGlow")
     local width,height=entry.art:GetSize();local level=entry.frame:GetFrameLevel()
     if not s.glyphHost then
         s.glyphHost=host(entry.frame);s.glyphs={}
@@ -98,7 +100,7 @@ function E.UpdateTimeworks(entry,config)
     for _,layer in ipairs(s.glyphs) do
         layer.texture:SetTexture(media..(config.art=="timekeeper" and "Timekeeper" or "Timelost").."Glyph"..layer.suffix.."CAS.tga")
         layer.texture:SetSize(width,height);layer.texture:ClearAllPoints();layer.texture:SetPoint("CENTER",s.glyphHost,"CENTER",0,0)
-        layer.texture:SetTexCoord(E.UV({0,0,0,1,1,0,1,1},s.flip));layer.texture:Show()
+        layer.texture:SetTexCoord(E.UV({0,0,0,1,1,0,1,1},glowFlip));layer.texture:Show()
     end
     s.middle:SetFrameLevel(level+3);s.frontHost:SetFrameLevel(level+4)
     for _,f in ipairs({s.middle,s.frontHost}) do
@@ -118,9 +120,10 @@ function E.UpdateTimeworks(entry,config)
             end
         end
         s.front:SetSize(width,height);s.front:ClearAllPoints();s.front:SetPoint("CENTER",s.frontHost,"CENTER",0,0)
-        s.front:SetTexCoord(E.UV({0,0,0,1,1,0,1,1},s.flip));s.front:Show()
+        s.front:SetTexCoord(E.UV({0,0,0,1,1,0,1,1},E.LayerFacing(config,"art:timeFront")));s.front:Show()
         for i,spec in ipairs(gearSpecs) do
-            local g=s.gears[i];local diameter=width*spec[3]/1086;local size=sizeFor(entry,diameter)
+            local g=s.gears[i];local diameter=width*spec[3]/1086
+            local size=sizeFor(entry,diameter*E.ArtworkLayerScale(config,"art:timeMiddle"))
             local backing=1;while backing<size do backing=backing*2 end;local u=size/backing
             g.texture:SetTexture(media.."TimelostGear"..i.."CASSize"..size..".tga")
             g.texture:SetSize(diameter,diameter);g.texture:ClearAllPoints()
@@ -132,7 +135,7 @@ function E.UpdateTimeworks(entry,config)
         if not s.sand then s.sand={texture(s.middle),texture(s.middle)} end
         for _,t in ipairs(s.sand) do
             t:SetTexture(media.."TimekeeperSandAtlasCAS.tga");t:SetSize(width*184/1086,height*208/724)
-            t:ClearAllPoints();t:SetPoint("CENTER",entry.art,"TOPLEFT",width*(s.flip and 1-392/1086 or 392/1086),-height*484/724);t:Show()
+            t:ClearAllPoints();t:SetPoint("CENTER",entry.art,"TOPLEFT",width*(config.flip and 1-392/1086 or 392/1086),-height*484/724);t:Show()
         end
         drawSand(s)
     end

@@ -1,10 +1,14 @@
 # Player-only allowlist shared by packaging and installation.
 function Get-EndCapperRuntimeFiles {
-    @('EndCapper.toc', 'Model.lua', 'Layouts.lua', 'Clipping.lua', 'NativeSmoke.xml', 'NativeSmoke.lua', 'Glyphs.lua', 'Liquid.lua', 'Arcane.lua', 'Skycutter.lua', 'MageBooks.lua', 'MageSigils.lua', 'EffectCatalog.lua', 'EffectLibrary.lua', 'EffectPreview.xml', 'EffectPreview.lua', 'EffectControls.lua', 'EffectBrowser.lua', 'AddedEffects.lua',   'EffectAnimations.lua', 'EffectSegments.lua',  'Timeworks.lua', 'Molten.lua', 'Frost.lua', 'Moonwell.lua', 'Halos.lua', 'Effects.lua', 'Core.lua', 'Options.lua')
+    @('EndCapper.toc', 'Model.lua', 'LayerStack.lua', 'LayerPlacement.lua', 'Layouts.lua', 'Clipping.lua', 'NativeSmoke.xml', 'NativeSmoke.lua', 'Glyphs.lua', 'Liquid.lua', 'Arcane.lua', 'Skycutter.lua', 'Rogue.lua', 'MageBooks.lua', 'MageSigils.lua', 'EffectCatalog.lua', 'EffectLibrary.lua', 'EffectPreview.xml', 'EffectPreview.lua', 'EffectControls.lua', 'LayerPanel.lua', 'EffectBrowser.lua', 'AddedEffects.lua', 'EffectAnimations.lua', 'EffectSegments.lua', 'Timeworks.lua', 'Molten.lua', 'Frost.lua', 'Moonwell.lua', 'Halos.lua', 'Effects.lua', 'Core.lua', 'Options.lua')
 }
 
 function Get-EndCapperPackageFiles {
     $files = (Get-EndCapperRuntimeFiles) + @('README.md', 'LICENSE', 'CHANGELOG.md')
+    $files += @('Media/Gloomfang.tga','Media/Venomveil.tga')
+    foreach ($name in @('Gloomfang','Venomveil')) {
+        foreach ($size in @(192,288,384,576,768,1086)) { $files += "Media/${name}DaggerCASSize$size.tga" }
+    }
     foreach($name in @('Timekeeper','Timelost')) { foreach($layer in @('Emission','Bloom')) { $files += "Media/${name}Glyph${layer}CAS.tga" } }
     $files += @('Media/Timekeeper.tga','Media/Timelost.tga','Media/TimelostFront.tga','Media/TimekeeperSandAtlasCAS.tga')
     foreach($gear in @(1,2,3)) { foreach($size in @(64,96,128,192,256)) { $files += "Media/TimelostGear${gear}CASSize$size.tga" } }
